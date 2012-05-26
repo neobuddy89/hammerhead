@@ -129,6 +129,7 @@ obj-$(CONFIG_SIGNATURE) += digsig.o
 obj-$(CONFIG_CLZ_TAB) += clz_tab.o
 
 obj-$(CONFIG_GENERIC_STRNCPY_FROM_USER) += strncpy_from_user.o
+obj-$(CONFIG_GENERIC_STRNLEN_USER) += strnlen_user.o
 
 obj-$(CONFIG_QMI_ENCDEC) += qmi_encdec.o
 
