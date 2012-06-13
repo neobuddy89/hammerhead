@@ -52,7 +52,7 @@ struct page {
 	struct {
 		union {
 			pgoff_t index;		/* Our offset within mapping. */
-			void *freelist;		/* slub first free object */
+			void *freelist;		/* slub/slob first free object */
 		};
 
 		union {
@@ -80,11 +80,12 @@ struct page {
 					 */
 					atomic_t _mapcount;
 
-					struct {
+					struct { /* SLUB */
 						unsigned inuse:16;
 						unsigned objects:15;
 						unsigned frozen:1;
 					};
+					int units;	/* SLOB */
 				};
 				atomic_t _count;		/* Usage count, see below. */
 			};
@@ -106,6 +107,8 @@ struct page {
 			short int pobjects;
 #endif
 		};
+
+		struct list_head list;	/* slobs list of pages */
 		struct {		/* slab fields */
 			struct kmem_cache *slab_cache;
 			struct slab *slab_page;
