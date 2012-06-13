@@ -116,6 +116,10 @@ struct page {
 			short int pobjects;
 #endif
 		};
+		struct {		/* slab fields */
+			struct kmem_cache *slab_cache;
+			struct slab *slab_page;
+		};
 	};
 
 	/* Remainder is not double word aligned */
