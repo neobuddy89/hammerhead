@@ -1216,6 +1216,11 @@ static void ext4_update_super(struct super_block *sb,
 			   &sbi->s_flex_groups[flex_group].free_inodes);
 	}
 
+	/*
+	 * Update the fs overhead information
+	 */
+	ext4_calculate_overhead(sb);
+
 	if (test_opt(sb, DEBUG))
 		printk(KERN_DEBUG "EXT4-fs: added group %u:"
 		       "%llu blocks(%llu free %llu reserved)\n", flex_gd->count,
