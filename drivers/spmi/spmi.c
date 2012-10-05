@@ -73,7 +73,7 @@ int spmi_add_controller(struct spmi_controller *ctrl)
 
 	pr_debug("adding controller for bus %d (0x%p)\n", ctrl->nr, ctrl);
 
-	if (ctrl->nr & ~MAX_ID_MASK) {
+	if (ctrl->nr & ~MAX_IDR_MASK) {
 		pr_err("invalid bus identifier %d\n", ctrl->nr);
 		return -EINVAL;
 	}
