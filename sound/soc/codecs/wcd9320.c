@@ -6359,6 +6359,8 @@ static const struct wcd9xxx_reg_mask_val taiko_1_0_reg_defaults[] = {
 
 	/* Disable TX7 internal biasing path which can cause leakage */
 	TAIKO_REG_VAL(TAIKO_A_TX_SUP_SWITCH_CTRL_1, 0xBF),
+	/* Enable MICB 4 VDDIO switch to prevent leakage */
+	TAIKO_REG_VAL(TAIKO_A_MICB_4_MBHC, 0x81),
 
 	/* Close leakage on the spkdrv */
 	TAIKO_REG_VAL(TAIKO_A_SPKR_DRV_DBG_PWRSTG, 0x24),
