@@ -53,7 +53,7 @@ static DEFINE_SPINLOCK(zone_scan_lock);
  * @old_val.  Usually used to reinstate a previous value to prevent racing with
  * userspacing tuning the value in the interim.
  */
-void compare_swap_oom_score_adj(int old_val, int new_val)
+void compare_swap_oom_score_adj(short old_val, short new_val)
 {
 	struct sighand_struct *sighand = current->sighand;
 
@@ -72,7 +72,7 @@ void compare_swap_oom_score_adj(int old_val, int new_val)
  * synchronization and returns the old value.  Usually used to temporarily
  * set a value, save the old value in the caller, and then reinstate it later.
  */
-int test_set_oom_score_adj(int new_val)
+short test_set_oom_score_adj(short new_val)
 {
 	struct sighand_struct *sighand = current->sighand;
 	int old_val;
@@ -193,7 +193,7 @@ unsigned long oom_badness(struct task_struct *p, struct mem_cgroup *memcg,
 	if (!p)
 		return 0;
 
-	adj = p->signal->oom_score_adj;
+	adj = (long)p->signal->oom_score_adj;
 	if (adj == OOM_SCORE_ADJ_MIN) {
 		task_unlock(p);
 		return 0;
@@ -375,15 +375,15 @@ static struct task_struct *select_bad_process(unsigned int *ppoints,
  * Dumps the current memory state of all eligible tasks.  Tasks not in the same
  * memcg, not in the same cpuset, or bound to a disjoint set of mempolicy nodes
  * are not shown.
- * State information includes task's pid, uid, tgid, vm size, rss, cpu, oom_adj
- * value, oom_score_adj value, and name.
+ * State information includes task's pid, uid, tgid, vm size, rss, nr_ptes,
+ * swapents, oom_score_adj value, and name.
  */
 static void dump_tasks(const struct mem_cgroup *memcg, const nodemask_t *nodemask)
 {
 	struct task_struct *p;
 	struct task_struct *task;
 
-	pr_info("[ pid ]   uid  tgid total_vm      rss cpu oom_adj oom_score_adj name\n");
+	pr_info("[ pid ] uid tgid total_vm rss nr_ptes swapents oom_score_adj name\n");
 	rcu_read_lock();
 	for_each_process(p) {
 		if (oom_unkillable_task(p, memcg, nodemask))
@@ -399,10 +399,11 @@ static void dump_tasks(const struct mem_cgroup *memcg, const nodemask_t *nodemas
 			continue;
 		}
 
-		pr_info("[%5d] %5d %5d %8lu %8lu %3u     %3d         %5d %s\n",
-			task->pid, task_uid(task), task->tgid,
-			task->mm->total_vm, get_mm_rss(task->mm),
-			task_cpu(task), task->signal->oom_adj,
+		pr_info("[%5d] %5d %5d %8lu %8lu %7lu %8lu %5hd %s\n",
+			task->pid, task_uid(task),
+			task->tgid, task->mm->total_vm, get_mm_rss(task->mm),
+			task->mm->nr_ptes,
+			get_mm_counter(task->mm, MM_SWAPENTS),
 			task->signal->oom_score_adj, task->comm);
 		task_unlock(task);
 	}
@@ -414,7 +415,7 @@ static void dump_header(struct task_struct *p, gfp_t gfp_mask, int order,
 {
 	task_lock(current);
 	pr_warning("%s invoked oom-killer: gfp_mask=0x%x, order=%d, "
-		"oom_score_adj=%d\n",
+		"oom_score_adj=%hd\n",
 		current->comm, gfp_mask, order,
 		current->signal->oom_score_adj);
 	cpuset_print_task_mems_allowed(current);
