@@ -298,7 +298,6 @@ static int regcache_rbtree_write(struct regmap *map, unsigned int reg,
 	struct regcache_rbtree_ctx *rbtree_ctx;
 	struct regcache_rbtree_node *rbnode, *rbnode_tmp;
 	struct rb_node *node;
-	unsigned int val;
 	unsigned int reg_tmp;
 	unsigned int pos;
 	int i;
@@ -311,10 +310,6 @@ static int regcache_rbtree_write(struct regmap *map, unsigned int reg,
 	rbnode = regcache_rbtree_lookup(map, reg);
 	if (rbnode) {
 		reg_tmp = reg - rbnode->base_reg;
-		val = regcache_rbtree_get_register(rbnode, reg_tmp,
-						   map->cache_word_size);
-		if (val == value)
-			return 0;
 		regcache_rbtree_set_register(rbnode, reg_tmp, value,
 					     map->cache_word_size);
 	} else {
