@@ -35,6 +35,7 @@
 struct msm_video_device {
 	struct video_device *vdev;
 	atomic_t opened;
+	atomic_t stream_cnt;
 };
 
 struct msm_queue_head {
