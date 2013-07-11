@@ -242,6 +242,8 @@ struct diag_smd_info {
 
 	struct diag_nrt_wake_lock nrt_lock;
 
+	struct workqueue_struct *wq;
+
 	struct work_struct diag_read_smd_work;
 	struct work_struct diag_notify_update_smd_work;
 	int notify_context;
@@ -395,7 +397,6 @@ struct diagchar_dev {
 	struct diag_request *write_ptr_mdm;
 #endif
 #ifdef CONFIG_DIAGFWD_BRIDGE_CODE
-	spinlock_t hsic_ready_spinlock;
 	/* common for all bridges */
 	struct work_struct diag_connect_work;
 	struct work_struct diag_disconnect_work;
