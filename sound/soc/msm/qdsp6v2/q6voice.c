@@ -1979,20 +1979,20 @@ static int voice_send_cvs_register_cal_cmd(struct voice_data *v)
 	if (!common.apr_q6_cvs) {
 		pr_err("%s: apr_cvs is NULL\n", __func__);
 
-		ret = -EINVAL;
+		ret = -EPERM;
 		goto done;
 	}
 
 	if (!common.cal_mem_handle) {
-		pr_debug("%s: Cal mem handle is NULL\n", __func__);
-
+		pr_err("%s: Cal mem handle is NULL\n", __func__);
+		ret = -EPERM;
 		goto done;
 	}
 
 	get_vocstrm_cal(&cal_block);
 	if (cal_block.cal_size == 0) {
 		pr_err("%s: CVS cal size is 0\n", __func__);
-
+		ret = -EPERM;
 		goto done;
 	}
 
@@ -2021,7 +2021,7 @@ static int voice_send_cvs_register_cal_cmd(struct voice_data *v)
 	ret = apr_send_pkt(common.apr_q6_cvs, (uint32_t *) &cvs_reg_cal_cmd);
 	if (ret < 0) {
 		pr_err("%s: Error %d registering CVS cal\n", __func__, ret);
-
+		ret = -EINVAL;
 		goto done;
 	}
 	ret = wait_event_timeout(v->cvs_wait,
@@ -2029,7 +2029,7 @@ static int voice_send_cvs_register_cal_cmd(struct voice_data *v)
 				 msecs_to_jiffies(TIMEOUT_MS));
 	if (!ret) {
 		pr_err("%s: Command timeout\n", __func__);
-
+		ret = -EINVAL;
 		goto done;
 	}
 
@@ -2054,19 +2054,22 @@ static int voice_send_cvs_deregister_cal_cmd(struct voice_data *v)
 	if (!common.apr_q6_cvs) {
 		pr_err("%s: apr_cvs is NULL\n", __func__);
 
-		ret = -EINVAL;
+		ret = -EPERM;
 		goto done;
 	}
 
 	if (!common.cal_mem_handle) {
-		pr_debug("%s: Cal mem handle is NULL\n", __func__);
-
+		pr_err("%s: Cal mem handle is NULL\n", __func__);
+		ret = -EPERM;
 		goto done;
 	}
 
 	get_vocstrm_cal(&cal_block);
-	if (cal_block.cal_size == 0)
+	if (cal_block.cal_size == 0) {
+		pr_err("%s: CVS cal size is 0\n", __func__);
+		ret = -EPERM;
 		goto done;
+	}
 
 	cvs_dereg_cal_cmd.hdr.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
 				APR_HDR_LEN(APR_HDR_SIZE), APR_PKT_VER);
@@ -2083,7 +2086,7 @@ static int voice_send_cvs_deregister_cal_cmd(struct voice_data *v)
 	ret = apr_send_pkt(common.apr_q6_cvs, (uint32_t *) &cvs_dereg_cal_cmd);
 	if (ret < 0) {
 		pr_err("%s: Error %d de-registering CVS cal\n", __func__, ret);
-
+		ret = -EINVAL;
 		goto done;
 	}
 	ret = wait_event_timeout(v->cvs_wait,
@@ -2091,7 +2094,7 @@ static int voice_send_cvs_deregister_cal_cmd(struct voice_data *v)
 				 msecs_to_jiffies(TIMEOUT_MS));
 	if (!ret) {
 		pr_err("%s: Command  timeout\n", __func__);
-
+		ret = -EINVAL;
 		goto done;
 	}
 
@@ -2117,20 +2120,20 @@ static int voice_send_cvp_register_dev_cfg_cmd(struct voice_data *v)
 	if (!common.apr_q6_cvp) {
 		pr_err("%s: apr_cvp is NULL\n", __func__);
 
-		ret = -EINVAL;
+		ret = -EPERM;
 		goto done;
 	}
 
 	if (!common.cal_mem_handle) {
-		pr_debug("%s: Cal mem handle is NULL\n", __func__);
-
+		pr_err("%s: Cal mem handle is NULL\n", __func__);
+		ret = -EPERM;
 		goto done;
 	}
 
 	get_vocproc_dev_cfg_cal(&cal_block);
 	if (cal_block.cal_size == 0) {
 		pr_err("%s: CVP cal size is 0\n", __func__);
-
+		ret = -EPERM;
 		goto done;
 	}
 
@@ -2155,7 +2158,7 @@ static int voice_send_cvp_register_dev_cfg_cmd(struct voice_data *v)
 	if (ret < 0) {
 		pr_err("%s: Error %d registering CVP dev cfg cal\n",
 		       __func__, ret);
-
+		ret = -EINVAL;
 		goto done;
 	}
 	ret = wait_event_timeout(v->cvp_wait,
@@ -2163,7 +2166,7 @@ static int voice_send_cvp_register_dev_cfg_cmd(struct voice_data *v)
 				 msecs_to_jiffies(TIMEOUT_MS));
 	if (!ret) {
 		pr_err("%s: Command timeout\n", __func__);
-
+		ret = -EINVAL;
 		goto done;
 	}
 
@@ -2188,19 +2191,22 @@ static int voice_send_cvp_deregister_dev_cfg_cmd(struct voice_data *v)
 	if (!common.apr_q6_cvp) {
 		pr_err("%s: apr_cvp is NULL\n", __func__);
 
-		ret = -EINVAL;
+		ret = -EPERM;
 		goto done;
 	}
 
 	if (!common.cal_mem_handle) {
-		pr_debug("%s: Cal mem handle is NULL\n", __func__);
-
+		pr_err("%s: Cal mem handle is NULL\n", __func__);
+		ret = -EPERM;
 		goto done;
 	}
 
 	get_vocproc_dev_cfg_cal(&cal_block);
-	if (cal_block.cal_size == 0)
+	if (cal_block.cal_size == 0) {
+		pr_err("%s: CVP cal size is 0\n", __func__);
+		ret = -EPERM;
 		goto done;
+	}
 
 	cvp_dereg_dev_cfg_cmd.hdr.hdr_field =
 				APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
@@ -2220,7 +2226,7 @@ static int voice_send_cvp_deregister_dev_cfg_cmd(struct voice_data *v)
 	if (ret < 0) {
 		pr_err("%s: Error %d de-registering CVP dev cfg cal\n",
 		       __func__, ret);
-
+		ret = -EINVAL;
 		goto done;
 	}
 	ret = wait_event_timeout(v->cvp_wait,
@@ -2228,7 +2234,7 @@ static int voice_send_cvp_deregister_dev_cfg_cmd(struct voice_data *v)
 				 msecs_to_jiffies(TIMEOUT_MS));
 	if (!ret) {
 		pr_err("%s: Command timeout\n", __func__);
-
+		ret = -EINVAL;
 		goto done;
 	}
 
@@ -2253,20 +2259,20 @@ static int voice_send_cvp_register_cal_cmd(struct voice_data *v)
 	if (!common.apr_q6_cvp) {
 		pr_err("%s: apr_cvp is NULL\n", __func__);
 
-		ret = -EINVAL;
+		ret = -EPERM;
 		goto done;
 	}
 
 	if (!common.cal_mem_handle) {
-		pr_debug("%s: Cal mem handle is NULL\n", __func__);
-
+		pr_err("%s: Cal mem handle is NULL\n", __func__);
+		ret = -EPERM;
 		goto done;
 	}
 
 	get_vocproc_cal(&cal_block);
 	if (cal_block.cal_size == 0) {
 		pr_err("%s: CVP cal size is 0\n", __func__);
-
+		ret = -EPERM;
 		goto done;
 	}
 
@@ -2295,7 +2301,7 @@ static int voice_send_cvp_register_cal_cmd(struct voice_data *v)
 	ret = apr_send_pkt(common.apr_q6_cvp, (uint32_t *) &cvp_reg_cal_cmd);
 	if (ret < 0) {
 		pr_err("%s: Error %d registering CVP cal\n", __func__, ret);
-
+		ret = -EINVAL;
 		goto done;
 	}
 	ret = wait_event_timeout(v->cvp_wait,
@@ -2303,7 +2309,7 @@ static int voice_send_cvp_register_cal_cmd(struct voice_data *v)
 				 msecs_to_jiffies(TIMEOUT_MS));
 	if (!ret) {
 		pr_err("%s: Command timeout\n", __func__);
-
+		ret = -EINVAL;
 		goto done;
 	}
 
@@ -2328,19 +2334,22 @@ static int voice_send_cvp_deregister_cal_cmd(struct voice_data *v)
 	if (!common.apr_q6_cvp) {
 		pr_err("%s: apr_cvp is NULL.\n", __func__);
 
-		ret = -EINVAL;
+		ret = -EPERM;
 		goto done;
 	}
 
 	if (!common.cal_mem_handle) {
-		pr_debug("%s: Cal mem handle is NULL\n", __func__);
-
+		pr_err("%s: Cal mem handle is NULL\n", __func__);
+		ret = -EPERM;
 		goto done;
 	}
 
 	get_vocproc_cal(&cal_block);
-	if (cal_block.cal_size == 0)
+	if (cal_block.cal_size == 0) {
+		pr_err("%s: CVP vol cal size is 0\n", __func__);
+		ret = -EPERM;
 		goto done;
+	}
 
 	cvp_dereg_cal_cmd.hdr.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
 				APR_HDR_LEN(APR_HDR_SIZE), APR_PKT_VER);
@@ -2357,7 +2366,7 @@ static int voice_send_cvp_deregister_cal_cmd(struct voice_data *v)
 	ret = apr_send_pkt(common.apr_q6_cvp, (uint32_t *) &cvp_dereg_cal_cmd);
 	if (ret < 0) {
 		pr_err("%s: Error %d de-registering CVP cal\n", __func__, ret);
-
+		ret = -EINVAL;
 		goto done;
 	}
 	ret = wait_event_timeout(v->cvp_wait,
@@ -2365,7 +2374,7 @@ static int voice_send_cvp_deregister_cal_cmd(struct voice_data *v)
 				 msecs_to_jiffies(TIMEOUT_MS));
 	if (!ret) {
 		pr_err("%s: Command timeout\n", __func__);
-
+		ret = -EINVAL;
 		goto done;
 	}
 
@@ -2390,20 +2399,20 @@ static int voice_send_cvp_register_vol_cal_cmd(struct voice_data *v)
 	if (!common.apr_q6_cvp) {
 		pr_err("%s: apr_cvp is NULL\n", __func__);
 
-		ret = -EINVAL;
+		ret = -EPERM;
 		goto done;
 	}
 
 	if (!common.cal_mem_handle) {
-		pr_debug("%s: Cal mem handle is NULL\n", __func__);
-
+		pr_err("%s: Cal mem handle is NULL\n", __func__);
+		ret = -EPERM;
 		goto done;
 	}
 
 	get_vocvol_cal(&cal_block);
 	if (cal_block.cal_size == 0) {
 		pr_err("%s: CVP vol cal size is 0\n", __func__);
-
+		ret = -EPERM;
 		goto done;
 	}
 
@@ -2435,7 +2444,7 @@ static int voice_send_cvp_register_vol_cal_cmd(struct voice_data *v)
 			   (uint32_t *) &cvp_reg_vol_cal_cmd);
 	if (ret < 0) {
 		pr_err("%s: Error %d registering CVP vol cal\n", __func__, ret);
-
+		ret = -EINVAL;
 		goto done;
 	}
 	ret = wait_event_timeout(v->cvp_wait,
@@ -2443,7 +2452,7 @@ static int voice_send_cvp_register_vol_cal_cmd(struct voice_data *v)
 				 msecs_to_jiffies(TIMEOUT_MS));
 	if (!ret) {
 		pr_err("%s: Command timeout\n", __func__);
-
+		ret = -EINVAL;
 		goto done;
 	}
 
@@ -2468,19 +2477,22 @@ static int voice_send_cvp_deregister_vol_cal_cmd(struct voice_data *v)
 	if (!common.apr_q6_cvp) {
 		pr_err("%s: apr_cvp is NULL\n", __func__);
 
-		ret = -EINVAL;
+		ret = -EPERM;
 		goto done;
 	}
 
 	if (!common.cal_mem_handle) {
-		pr_debug("%s: Cal mem handle is NULL\n", __func__);
-
+		pr_err("%s: Cal mem handle is NULL\n", __func__);
+		ret = -EPERM;
 		goto done;
 	}
 
 	get_vocvol_cal(&cal_block);
-	if (cal_block.cal_size == 0)
+	if (cal_block.cal_size == 0) {
+		pr_err("%s: CVP vol cal size is 0\n", __func__);
+		ret = -EPERM;
 		goto done;
+	}
 
 	cvp_dereg_vol_cal_cmd.hdr.hdr_field =
 			APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
@@ -2500,7 +2512,7 @@ static int voice_send_cvp_deregister_vol_cal_cmd(struct voice_data *v)
 	if (ret < 0) {
 		pr_err("%s: Error %d de-registering CVP vol cal\n",
 		       __func__, ret);
-
+		ret = -EINVAL;
 		goto done;
 	}
 	ret = wait_event_timeout(v->cvp_wait,
@@ -2508,7 +2520,7 @@ static int voice_send_cvp_deregister_vol_cal_cmd(struct voice_data *v)
 				 msecs_to_jiffies(TIMEOUT_MS));
 	if (!ret) {
 		pr_err("%s: Command timeout\n", __func__);
-
+		ret = -EINVAL;
 		goto done;
 	}
 
@@ -2519,6 +2531,7 @@ done:
 int voc_register_vocproc_vol_table(void)
 {
 	int			result = 0;
+	int			result2 = 0;
 	int			i;
 	struct voice_data	*v = NULL;
 	pr_debug("%s\n", __func__);
@@ -2529,17 +2542,17 @@ int voc_register_vocproc_vol_table(void)
 
 		mutex_lock(&v->lock);
 		if (is_voc_state_active(v->voc_state)) {
-			result = voice_send_cvp_register_vol_cal_cmd(v);
-			if (result) {
+			result2 = voice_send_cvp_register_vol_cal_cmd(v);
+			if (result2 < 0) {
 				pr_err("%s: Failed to register vocvol table for session 0x%x!\n",
 					__func__, v->session_id);
-				mutex_unlock(&v->lock);
-				goto done;
+				result = result2;
+				/* Still try to register other sessions */
 			}
 		}
 		mutex_unlock(&v->lock);
 	}
-done:
+
 	mutex_unlock(&common.common_lock);
 	return result;
 }
@@ -2547,6 +2560,7 @@ done:
 int voc_deregister_vocproc_vol_table(void)
 {
 	int			result = 0;
+	int			success = 0;
 	int			i;
 	struct voice_data	*v = NULL;
 	pr_debug("%s\n", __func__);
@@ -2558,17 +2572,25 @@ int voc_deregister_vocproc_vol_table(void)
 		mutex_lock(&v->lock);
 		if (is_voc_state_active(v->voc_state)) {
 			result = voice_send_cvp_deregister_vol_cal_cmd(v);
-			if (result) {
+			if (result < 0) {
 				pr_err("%s: Failed to deregister vocvol table for session 0x%x!\n",
 					__func__, v->session_id);
 				mutex_unlock(&v->lock);
+				mutex_unlock(&common.common_lock);
+				if (success) {
+					pr_err("%s: Try to re-register all deregistered sessions!\n",
+						__func__);
+					voc_register_vocproc_vol_table();
+				}
 				goto done;
+			} else {
+				success = 1;
 			}
 		}
 		mutex_unlock(&v->lock);
 	}
-done:
 	mutex_unlock(&common.common_lock);
+done:
 	return result;
 }
 
