@@ -630,7 +630,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx,
 		}
 		list[i].num = 1;
 		pages[list[i].pgidx].addr =
-			buf_page_start((void *)(pbuf->phys +
+			buf_page_start((void *)(unsigned long)(pbuf->phys +
 						 (pbuf->size - rlen)));
 		pages[list[i].pgidx].size =
 			buf_page_size(pra[i].buf.len);
