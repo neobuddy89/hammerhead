@@ -42,7 +42,6 @@
 #include <linux/sync.h>
 #include <linux/sw_sync.h>
 #include <linux/file.h>
-#include <linux/memory_alloc.h>
 #include <linux/kthread.h>
 #include <linux/of_address.h>
 
