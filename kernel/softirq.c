@@ -134,7 +134,6 @@ EXPORT_SYMBOL(local_bh_disable);
 
 static void __local_bh_enable(unsigned int cnt)
 {
-	WARN_ON_ONCE(in_irq());
 	WARN_ON_ONCE(!irqs_disabled());
 
 	if (softirq_count() == cnt)
@@ -149,6 +148,7 @@ static void __local_bh_enable(unsigned int cnt)
  */
 void _local_bh_enable(void)
 {
+	WARN_ON_ONCE(in_irq());
 	__local_bh_enable(SOFTIRQ_DISABLE_OFFSET);
 }
 
@@ -273,6 +273,7 @@ restart:
 
 	account_system_vtime(current);
 	__local_bh_enable(SOFTIRQ_OFFSET);
+	WARN_ON_ONCE(in_interrupt());
 }
 
 
@@ -292,7 +293,6 @@ asmlinkage void do_softirq(void)
 	if (pending)
 		do_softirq_own_stack();
 
-	WARN_ON_ONCE(softirq_count());
 	local_irq_restore(flags);
 }
 
