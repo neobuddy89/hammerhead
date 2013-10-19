@@ -921,14 +921,14 @@ static int _disp_stats(int id)
 					pstat->sha_hmac_op_success);
 	spin_lock_irqsave(&cp->lock, flags);
 	list_for_each_entry(pe, &cp->engine_list, elist) {
-		len += snprintf(
+		len += scnprintf(
 			_debug_read_buf + len,
 			DEBUG_MAX_RW_BUF - len - 1,
 			"   Engine %4d Req                     : %llu\n",
 			pe->unit,
 			pe->total_req
 		);
-		len += snprintf(
+		len += scnprintf(
 			_debug_read_buf + len,
 			DEBUG_MAX_RW_BUF - len - 1,
 			"   Engine %4d Req Error               : %llu\n",
