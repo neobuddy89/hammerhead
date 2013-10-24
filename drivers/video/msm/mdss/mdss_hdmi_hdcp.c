@@ -1115,9 +1115,6 @@ int hdmi_hdcp_reauthenticate(void *input)
 
 	DSS_REG_W(io, HDMI_HDCP_RESET, BIT(0));
 
-	/* Wait to be clean on DDC HW engine */
-	hdmi_hdcp_hw_ddc_clean(hdcp_ctrl);
-
 	/* Disable encryption and disable the HDCP block */
 	DSS_REG_W(io, HDMI_HDCP_CTRL, 0);
 
