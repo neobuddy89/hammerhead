@@ -1098,9 +1098,10 @@ static int diag_check_mode_reset(unsigned char *buf)
 	return is_mode_reset;
 }
 
-void diag_send_data(struct diag_master_table entry, unsigned char *buf,
+int diag_send_data(struct diag_master_table entry, unsigned char *buf,
 					 int len, int type)
 {
+	int success = 1;
 	driver->pkt_length = len;
 
 	/* If the process_id corresponds to an apps process */
@@ -1116,13 +1117,19 @@ void diag_send_data(struct diag_master_table entry, unsigned char *buf,
 			if (entry.client_id < NUM_SMD_DATA_CHANNELS) {
 				struct diag_smd_info *smd_info;
 				int index = entry.client_id;
+				if (!driver->rcvd_feature_mask[
+					entry.client_id]) {
+					pr_debug("diag: In %s, feature mask for peripheral: %d not received yet\n",
+						__func__, entry.client_id);
+					return 0;
+				}
 				/*
 				 * Mode reset should work even if
 				 * modem is down
 				 */
 				if ((index == MODEM_DATA) &&
 					diag_check_mode_reset(buf)) {
-					return;
+					return 1;
 				}
 				smd_info = (driver->separate_cmdrsp[index] &&
 						index < NUM_SMD_CMD_CHANNELS) ?
@@ -1142,9 +1149,12 @@ void diag_send_data(struct diag_master_table entry, unsigned char *buf,
 			} else {
 				pr_alert("diag: In %s, incorrect channel: %d",
 					__func__, entry.client_id);
+				success = 0;
 			}
 		}
 	}
+
+	return success;
 }
 
 void diag_process_stm_mask(uint8_t cmd, uint8_t data_mask, int data_type,
@@ -1260,6 +1270,7 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 	unsigned char *temp = buf;
 	int data_type;
 	int mask_ret;
+	int status = 0;
 #if defined(CONFIG_DIAG_OVER_USB)
 	unsigned char *ptr;
 #endif
@@ -1286,14 +1297,15 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 	pr_debug("diag: %d %d %d", cmd_code, subsys_id, subsys_cmd_code);
 	for (i = 0; i < diag_max_reg; i++) {
 		entry = driver->table[i];
-		if (entry.process_id != NO_PROCESS &&
-				driver->rcvd_feature_mask[entry.client_id]) {
+		if (entry.process_id != NO_PROCESS) {
 			if (entry.cmd_code == cmd_code && entry.subsys_id ==
 				 subsys_id && entry.cmd_code_lo <=
 							 subsys_cmd_code &&
 				  entry.cmd_code_hi >= subsys_cmd_code) {
-				diag_send_data(entry, buf, len, data_type);
-				packet_type = 0;
+				status = diag_send_data(entry, buf, len,
+								data_type);
+				if (status)
+					packet_type = 0;
 			} else if (entry.cmd_code == 255
 				  && cmd_code == 75) {
 				if (entry.subsys_id ==
@@ -1302,9 +1314,10 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 					subsys_cmd_code &&
 					 entry.cmd_code_hi >=
 					subsys_cmd_code) {
-					diag_send_data(entry, buf, len,
-								 data_type);
-					packet_type = 0;
+					status = diag_send_data(entry, buf,
+								len, data_type);
+					if (status)
+						packet_type = 0;
 				}
 			} else if (entry.cmd_code == 255 &&
 				  entry.subsys_id == 255) {
@@ -1312,9 +1325,10 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 						 cmd_code &&
 						 entry.
 						cmd_code_hi >= cmd_code) {
-					diag_send_data(entry, buf, len,
+					status = diag_send_data(entry, buf, len,
 								 data_type);
-					packet_type = 0;
+					if (status)
+						packet_type = 0;
 				}
 			}
 		}
