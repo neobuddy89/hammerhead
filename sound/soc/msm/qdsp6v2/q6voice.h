@@ -1325,6 +1325,8 @@ struct common_data {
 	uint32_t default_vol_step_val;
 	uint32_t default_vol_ramp_duration_ms;
 	uint32_t default_mute_ramp_duration_ms;
+	bool ec_ref_ext;
+	uint16_t ec_port_id;
 
 	/* APR to MVM in the Q6 */
 	void *apr_q6_mvm;
