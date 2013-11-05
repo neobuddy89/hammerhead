@@ -118,7 +118,6 @@ obj-$(CONFIG_ARCH_MSM9615) += nand_partitions.o
 obj-$(CONFIG_ARCH_MSM8625) += nand_partitions.o
 obj-$(CONFIG_ARCH_MSM7X27A) += nand_partitions.o
 obj-$(CONFIG_MSM_SMD_TTY) += smd_tty.o
-obj-$(CONFIG_MSM_SMD_QMI) += smd_qmi.o
 obj-$(CONFIG_MSM_SMD_PKT) += smd_pkt.o
 obj-$(CONFIG_MSM_DSPS) += msm_dsps.o
 obj-$(CONFIG_MSM_SMD_NMEA) += smd_nmea.o
