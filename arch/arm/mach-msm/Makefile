@@ -120,7 +120,6 @@ obj-$(CONFIG_ARCH_MSM7X27A) += nand_partitions.o
 obj-$(CONFIG_MSM_SMD_TTY) += smd_tty.o
 obj-$(CONFIG_MSM_SMD_PKT) += smd_pkt.o
 obj-$(CONFIG_MSM_DSPS) += msm_dsps.o
-obj-$(CONFIG_MSM_SMD_NMEA) += smd_nmea.o
 obj-$(CONFIG_MSM_RESET_MODEM) += reset_modem.o
 obj-$(CONFIG_MSM_IPC_ROUTER_SMD_XPRT) += ipc_router_smd_xprt.o
 obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter.o
