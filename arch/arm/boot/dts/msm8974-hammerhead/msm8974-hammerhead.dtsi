@@ -136,10 +136,6 @@
 		};
 	};
 
-	qcom,msm-thermal {
-		qcom,limit-temp = <90>;
-	};
-
 	bluesleep {
 		compatible = "qcom,bluesleep";
 		bt_host_wake = <&msmgpio 42 0>;
