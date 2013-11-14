@@ -227,7 +227,7 @@ static void wcd9xxx_start_hs_polling(struct wcd9xxx_mbhc *mbhc)
 	 * setup internal micbias if codec uses internal micbias for
 	 * headset detection
 	 */
-	if (mbhc->mbhc_cfg->use_int_rbias && !mbhc->int_rbias_on) {
+	if (mbhc->mbhc_cfg->use_int_rbias) {
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->setup_int_rbias)
 			mbhc->mbhc_cb->setup_int_rbias(codec, true);
 		else
@@ -1104,7 +1104,7 @@ static short wcd9xxx_mbhc_setup_hs_polling(struct wcd9xxx_mbhc *mbhc,
 	 * setup internal micbias if codec uses internal micbias for
 	 * headset detection
 	 */
-	if (mbhc->mbhc_cfg->use_int_rbias && !mbhc->int_rbias_on) {
+	if (mbhc->mbhc_cfg->use_int_rbias) {
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->setup_int_rbias)
 			mbhc->mbhc_cb->setup_int_rbias(codec, true);
 	else
@@ -3196,7 +3196,7 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 	 * setup internal micbias if codec uses internal micbias for
 	 * headset detection
 	 */
-	if (mbhc->mbhc_cfg->use_int_rbias && !mbhc->int_rbias_on) {
+	if (mbhc->mbhc_cfg->use_int_rbias) {
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->setup_int_rbias)
 			mbhc->mbhc_cb->setup_int_rbias(codec, true);
 		else
@@ -4027,7 +4027,6 @@ int wcd9xxx_mbhc_start(struct wcd9xxx_mbhc *mbhc,
 	if (mbhc->mbhc_cfg->use_int_rbias) {
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->setup_int_rbias) {
 			mbhc->mbhc_cb->setup_int_rbias(codec, true);
-			mbhc->int_rbias_on = true;
 		} else {
 			pr_info("%s: internal bias requested but codec did not provide callback\n",
 				__func__);
@@ -4186,7 +4185,6 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 	case WCD9XXX_EVENT_PRE_MICBIAS_2_ON:
 	case WCD9XXX_EVENT_PRE_MICBIAS_3_ON:
 	case WCD9XXX_EVENT_PRE_MICBIAS_4_ON:
-		mbhc->int_rbias_on = true;
 		if (mbhc->mbhc_cfg && mbhc->mbhc_cfg->micbias ==
 		    wcd9xxx_event_to_micbias(event)) {
 			wcd9xxx_switch_micbias(mbhc, 0);
@@ -4214,7 +4212,6 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 	case WCD9XXX_EVENT_POST_MICBIAS_2_OFF:
 	case WCD9XXX_EVENT_POST_MICBIAS_3_OFF:
 	case WCD9XXX_EVENT_POST_MICBIAS_4_OFF:
-		mbhc->int_rbias_on = false;
 		if (mbhc->mbhc_cfg && mbhc->mbhc_cfg->micbias ==
 		    wcd9xxx_event_to_micbias(event)) {
 			if (mbhc->event_state &
@@ -4517,7 +4514,6 @@ int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 	mbhc->intr_ids = mbhc_cdc_intr_ids;
 	mbhc->impedance_detect = impedance_det_en;
 	impedance_detect_en = impedance_det_en ? 1 : 0;
-	mbhc->int_rbias_on = false;
 
 	if (mbhc->intr_ids == NULL) {
 		pr_err("%s: Interrupt mapping not provided\n", __func__);
