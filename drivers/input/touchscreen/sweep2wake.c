@@ -164,7 +164,7 @@ static void detect_sweep2wake(int sweep_coord, int sweep_height, bool st)
 	}
 
 	//power on
-	if ((single_touch) && (scr_suspended == true) && (s2w_switch > 0)) {
+	if ((single_touch) && (scr_suspended == true) && (s2w_switch > 0 && !s2w_s2sonly)) {
 		prev_coord = 0;
 		next_coord = s2w_start_posn;
 		if ((barrier[0] == true) ||
