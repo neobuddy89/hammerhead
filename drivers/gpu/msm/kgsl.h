@@ -130,8 +130,7 @@ struct kgsl_memdesc_ops {
 	int (*vmfault)(struct kgsl_memdesc *, struct vm_area_struct *,
 		       struct vm_fault *);
 	void (*free)(struct kgsl_memdesc *memdesc);
-	int (*map_kernel)(struct kgsl_memdesc *);
-	void (*unmap_kernel)(struct kgsl_memdesc *);
+	int (*map_kernel_mem)(struct kgsl_memdesc *);
 };
 
 /* Internal definitions for memdesc->priv */
@@ -147,7 +146,6 @@ struct kgsl_memdesc_ops {
 struct kgsl_memdesc {
 	struct kgsl_pagetable *pagetable;
 	void *hostptr; /* kernel virtual address */
-	unsigned int hostptr_count; /* number of threads using hostptr */
 	unsigned long useraddr; /* userspace address */
 	unsigned int gpuaddr;
 	phys_addr_t physaddr;
@@ -158,6 +156,7 @@ struct kgsl_memdesc {
 	unsigned int sglen_alloc;  /* Allocated entries in the sglist */
 	struct kgsl_memdesc_ops *ops;
 	unsigned int flags; /* Flags set from userspace */
+	struct device *dev;
 };
 
 /* List of different memory entry types */
@@ -264,17 +263,13 @@ static inline int kgsl_gpuaddr_in_memdesc(const struct kgsl_memdesc *memdesc,
 
 static inline void *kgsl_memdesc_map(struct kgsl_memdesc *memdesc)
 {
-	if (memdesc->ops && memdesc->ops->map_kernel)
-		memdesc->ops->map_kernel(memdesc);
+	if (memdesc->hostptr == NULL && memdesc->ops &&
+		memdesc->ops->map_kernel_mem)
+		memdesc->ops->map_kernel_mem(memdesc);
 
 	return memdesc->hostptr;
 }
 
-static inline void kgsl_memdesc_unmap(struct kgsl_memdesc *memdesc)
-{
-	if (memdesc->ops && memdesc->ops->unmap_kernel)
-		memdesc->ops->unmap_kernel(memdesc);
-}
 static inline uint8_t *kgsl_gpuaddr_to_vaddr(struct kgsl_memdesc *memdesc,
 					     unsigned int gpuaddr)
 {
