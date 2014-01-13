@@ -19,10 +19,7 @@ static struct acpuclk_data *acpuclk_data;
 
 unsigned long acpuclk_get_rate(int cpu)
 {
-	if (!acpuclk_data || !acpuclk_data->get_rate)
-		return 0;
-
-	return acpuclk_data->get_rate(cpu);
+	return msm_cpufreq_get_freq(cpu);
 }
 
 int acpuclk_set_rate(int cpu, unsigned long rate, enum setrate_reason reason)
