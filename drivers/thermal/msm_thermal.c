@@ -1557,6 +1557,25 @@ static struct kernel_param_ops module_ops = {
 
 module_param_cb(enabled, &module_ops, &enabled, 0644);
 MODULE_PARM_DESC(enabled, "enforce thermal limit on cpu");
+module_param_named(limit_temp, msm_thermal_info.limit_temp_degC,
+		   uint, 0644);
+module_param_named(temp_hysteresis, msm_thermal_info.temp_hysteresis_degC,
+		   uint, 0644);
+module_param_named(freq_step, msm_thermal_info.bootup_freq_step, uint, 0644);
+module_param_named(core_limit_temp, msm_thermal_info.core_limit_temp_degC,
+		   uint, 0644);
+module_param_named(core_temp_hysteresis,
+		   msm_thermal_info.core_temp_hysteresis_degC, uint, 0644);
+module_param_named(freq_control_mask,
+		   msm_thermal_info.bootup_freq_control_mask, uint, 0644);
+module_param_named(hotplug_temp, msm_thermal_info.hotplug_temp_degC,
+		   uint, 0644);
+module_param_named(hotplug_temp_hysteresis,
+		   msm_thermal_info.hotplug_temp_hysteresis_degC, uint, 0644);
+module_param_named(psm_temp,
+		   msm_thermal_info.psm_temp_degC, uint, 0644);
+module_param_named(psm_temp_hysteresis,
+		   msm_thermal_info.psm_temp_hyst_degC, uint, 0644);
 
 static ssize_t show_cc_enabled(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
@@ -1795,7 +1814,7 @@ int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
 		pr_err("%s: cannot register cpufreq notifier\n",
 			KBUILD_MODNAME);
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
-	schedule_delayed_work(&check_temp_work, 0);
+	schedule_delayed_work(&check_temp_work, 20);
 
 	if (num_possible_cpus() > 1) {
 		mutex_lock(&core_control_mutex);
