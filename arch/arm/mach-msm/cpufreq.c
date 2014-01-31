@@ -274,12 +274,15 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 #ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX
 	policy->min = CONFIG_MSM_CPU_FREQ_MIN;
 	policy->max = CONFIG_MSM_CPU_FREQ_MAX;
+#else
+#ifdef CONFIG_ARCH_MSM8974
+	// Predefine max/min frequencies used for device boot
+	policy->max = 2265600;
+	policy->min = 300000;
+#endif
 #endif
 
-	if (is_clk)
-		cur_freq = clk_get_rate(cpu_clk[policy->cpu])/1000;
-	else
-		cur_freq = acpuclk_get_rate(policy->cpu);
+	cur_freq = clk_get_rate(cpu_clk[policy->cpu])/1000;
 
 	if (cpufreq_frequency_table_target(policy, table, cur_freq,
 	    CPUFREQ_RELATION_H, &index) &&
@@ -296,9 +299,10 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	ret = set_cpu_freq(policy, table[index].frequency, table[index].index);
 	if (ret)
 		return ret;
+	// Use user max frequency instead of max available frequency
 	pr_debug("cpufreq: cpu%d init at %d switching to %d\n",
-			policy->cpu, cur_freq, table[index].frequency);
-	policy->cur = table[index].frequency;
+			policy->cpu, cur_freq, policy->max);
+	policy->cur = policy->max;
 
 	policy->cpuinfo.transition_latency =
 		acpuclk_get_switch_time() * NSEC_PER_USEC;
