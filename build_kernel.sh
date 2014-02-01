@@ -85,44 +85,11 @@ if [ -e $KERNELDIR/arch/arm/boot/zImage ]; then
 fi;
 
 # remove previous initramfs files
-rm -rf $KERNELDIR/out/system/lib/modules >> /dev/null;
-rm -rf $KERNELDIR/out/tmp_modules >> /dev/null;
 rm -rf $KERNELDIR/out/temp >> /dev/null;
 
 # clean initramfs old compile data
 rm -f $KERNELDIR/usr/initramfs_data.cpio >> /dev/null;
 rm -f $KERNELDIR/usr/initramfs_data.o >> /dev/null;
-
-# remove all old modules before compile
-find $KERNELDIR -name "*.ko" | parallel rm -rf {};
-
-mkdir -p $KERNELDIR/out/system/lib/modules
-mkdir -p $KERNELDIR/out/tmp_modules
-
-# make modules and install
-echo "${bldcya}***** Compiling modules *****${txtrst}"
-if [ $USER != "root" ]; then
-	make -j$NUMBEROFCPUS modules || exit 1
-else
-	nice -n -15 make -j$NUMBEROFCPUS modules || exit 1
-fi;
-
-#echo "${bldcya}***** Installing modules *****${txtrst}"
-if [ $USER != "root" ]; then
-	make -j$NUMBEROFCPUS INSTALL_MOD_PATH=$KERNELDIR/out/tmp_modules modules_install || exit 1
-else
-	nice -n -15 make -j$NUMBEROFCPUS INSTALL_MOD_PATH=$KERNELDIR/out/tmp_modules modules_install || exit 1
-fi;
-
-## copy modules
-echo "${bldcya}***** Copying modules *****${txtrst}"
-find $KERNELDIR/out/tmp_modules -name '*.ko' | parallel cp -av {} $KERNELDIR/out/system/lib/modules;
-find $KERNELDIR/out/system/lib/modules -name '*.ko' | parallel ${CROSS_COMPILE}strip --strip-debug {};
-chmod 755 $KERNELDIR/out/system/lib/modules/*;
-
-# remove temp module files generated during compile
-echo "${bldcya}***** Removing temp module stage 2 files *****${txtrst}"
-rm -rf $KERNELDIR/out/tmp_modules >> /dev/null
 
 # wait for the successful ramdisk generation
 while [ $(cat ${TMPFILE}) == 0 ]; do
