@@ -93,8 +93,8 @@ rm -f $KERNELDIR/usr/initramfs_data.o >> /dev/null;
 
 # wait for the successful ramdisk generation
 while [ $(cat ${TMPFILE}) == 0 ]; do
-	sleep 2;
 	echo "${bldblu}Waiting for Ramdisk generation completion.${txtrst}";
+	sleep 2;
 done;
 
 # make zImage
