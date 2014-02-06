@@ -788,7 +788,7 @@ int msm_pm_wait_cpu_shutdown(unsigned int cpu)
 		if (acc_sts & msm_pm_slp_sts[cpu].mask)
 			return 0;
 		udelay(100);
-		WARN(++timeout == 20, "CPU%u didn't collapse in 2 ms\n", cpu);
+		WARN(++timeout == 25, "CPU%u didn't collapse in 2.5 ms\n", cpu);
 	}
 
 	return -EBUSY;
