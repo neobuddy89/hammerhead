@@ -68,12 +68,16 @@ echo "0" > $TMPFILE;
 )&
 
 if [ ! -f $KERNELDIR/.config ]; then
-	echo "${bldcya}***** Writing Config *****${txtrst}";
+	echo "${bldcya}***** Clean Build Initiating *****${txtrst}";
 	cp $KERNELDIR/arch/arm/configs/$KERNEL_CONFIG .config;
 	make $KERNEL_CONFIG;
+else
+	echo "${bldcya}***** Dirty Build Initiating *****${txtrst}";	
 fi;
 
 . $KERNELDIR/.config
+GETVER=`grep 'Chaos-Kernel_v.*' $KERNELDIR/.config | sed 's/.*_.//g' | sed 's/".*//g'`
+echo "${bldcya}Building => Chaos Kernel ${GETVER} ${txtrst}";
 
 # remove previous zImage files
 if [ -e $KERNELDIR/zImage ]; then
@@ -116,7 +120,6 @@ if [ -e $KERNELDIR/arch/arm/boot/zImage ]; then
 	./utilities/mkbootimg --kernel zImage --ramdisk ramdisk.gz --cmdline "console=ttyHSL0,115200,n8 androidboot.hardware=hammerhead user_debug=31 msm_watchdog_v2.enable=1 androidboot.selinux=permissive" --base 0x00000000 --pagesize 2048 --ramdisk_offset 0x02900000 --tags_offset 0x02700000 --dt dt.img --output boot.img
 	rm $KERNELDIR/out/boot.img >> /dev/null;
 	rm $KERNELDIR/out/Chaos-Kernel_* >> /dev/null;
-	GETVER=`grep 'Chaos-Kernel_v.*' arch/arm/configs/${KERNEL_CONFIG} | sed 's/.*_.//g' | sed 's/".*//g'`
 	cp $KERNELDIR/boot.img /$KERNELDIR/out/
 	cd $KERNELDIR/out/
 	zip -r Chaos-Kernel_v${GETVER}-`date +"[%m-%d]-[%H-%M]"`.zip .
