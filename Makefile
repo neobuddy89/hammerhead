@@ -368,16 +368,12 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-# Enabled most of -O3 features and optimizations for krait
-# Read more: http://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
 KBUILD_CFLAGS   := -w -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks \
-		   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
 		   -Wno-sizeof-pointer-memaccess \
-                   -fmodulo-sched -fmodulo-sched-allow-regmoves \
 		   -march=armv7-a -mfpu=neon-vfpv4 -mtune=cortex-a15
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
