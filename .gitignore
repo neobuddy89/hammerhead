@@ -44,6 +44,11 @@ modules.builtin
 /System.map
 /Module.markers
 /Module.symvers
+boot.img
+dt.img
+zImage
+/tmp/*
+/out/*.zip
 
 #
 # Debian directory (make deb-pkg)
