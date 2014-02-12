@@ -400,9 +400,7 @@ config CPU_FREQ_GOV_INTELLIACTIVE
 	  interactive workloads.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called cpufreq_interactive.
-
-	  For details, take a look at linux/Documentation/cpu-freq.
+	  module will be called cpufreq_intelliactive.
 
 	  If in doubt, say N.
 

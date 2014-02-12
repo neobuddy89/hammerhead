@@ -49,11 +49,11 @@ static ssize_t dyn_fsync_active_store(struct kobject *kobj,
 
 	if(sscanf(buf, "%u\n", &data) == 1) {
 		if (data == 1) {
-			pr_info("%s: dynamic fsync enabled\n", __FUNCTION__);
+			pr_info("%s: Dynamic fsync enabled\n", __FUNCTION__);
 			dyn_fsync_active = true;
 		}
 		else if (data == 0) {
-			pr_info("%s: dyanamic fsync disabled\n", __FUNCTION__);
+			pr_info("%s: Dynamic fsync disabled\n", __FUNCTION__);
 			dyn_fsync_active = false;
 		}
 		else
