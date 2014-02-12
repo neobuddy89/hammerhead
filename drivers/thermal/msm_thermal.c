@@ -1814,11 +1814,11 @@ int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
 		pr_err("%s: cannot register cpufreq notifier\n",
 			KBUILD_MODNAME);
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
-	schedule_delayed_work(&check_temp_work, 20);
+	schedule_delayed_work(&check_temp_work, msecs_to_jiffies(10000));
 
 	if (num_possible_cpus() > 1) {
 		mutex_lock(&core_control_mutex);
-		core_control_enabled = 1;
+		core_control_enabled = 0; // Disable core control
 		register_cpu_notifier(&msm_thermal_cpu_notifier);
 		update_offline_cores(cpus_offlined);
 		mutex_unlock(&core_control_mutex);
