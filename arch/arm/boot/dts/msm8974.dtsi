@@ -75,7 +75,7 @@
 		};
 
 		fb_mem: fb_region {
-			linux,reserve-reserve-contiguous-region;
+			linux,reserve-contiguous-region;
 			reg = <0 0x800000>;
 			label = "fb_mem";
 		};
@@ -86,6 +86,14 @@
 			reg = <0 0xC04000>;
 			label = "audio_mem";
 	       };
+
+		peripheral_mem: peripheral_region@7b00000 {
+			linux,reserve-contiguous-region;
+			linux,reserve-region;
+			linux,remove-completely;
+			reg = <0x7b00000 0x8400000>;
+			label = "peripheral_mem";
+		};
 	};
 
 	soc: soc { };
@@ -2366,11 +2374,6 @@
 		interrupts = <0 29 1>;
 		qcom,rx-ring-size = <64>;
 	};
-
-        memory_hole: qcom,msm-mem-hole {
-                compatible = "qcom,msm-mem-hole";
-                qcom,memblock-remove = <0x7b00000 0x8400000>; /* Address and Size of Hole */
-        };
 
 	uart7: uart@f995d000 { /*BLSP #2, UART #7 */
 		compatible = "qcom,msm-hsuart-v14";
