@@ -1187,6 +1187,8 @@ void adreno_ringbuffer_set_constraint(struct kgsl_device *device,
 					pwrlevel.level = constraint;
 		}
 
+		device->pwrctrl.constraint.expires = jiffies +
+			device->pwrctrl.interval_timeout;
 	}
 
 }
