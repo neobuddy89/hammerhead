@@ -1,4 +1,4 @@
-/* Copyright (c) 2002,2007-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2002,2007-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -255,13 +255,13 @@ static int kgsl_drv_full_cache_threshold_store(struct device *dev,
 					 const char *buf, size_t count)
 {
 	int ret;
-	unsigned int thresh;
-	ret = sscanf(buf, "%d", &thresh);
-	if (ret != 1)
-		return count;
+	unsigned int thresh = 0;
+
+	ret = kgsl_sysfs_store(buf, count, &thresh);
+	if (ret != count)
+		return ret;
 
 	kgsl_driver.full_cache_threshold = thresh;
-
 	return count;
 }
 
