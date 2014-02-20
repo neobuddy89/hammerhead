@@ -1249,7 +1249,6 @@ static int __cpuinit console_cpu_notify(struct notifier_block *self,
 		console_unlock();
 		break;
 	case CPU_ONLINE:
-	case CPU_DYING:
 		/* invoked with preemption disabled, so defer */
 		if (!console_trylock())
 			schedule_work(&console_cpu_notify_work);
