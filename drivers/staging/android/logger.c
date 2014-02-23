@@ -444,6 +444,20 @@ static ssize_t do_write_log_from_user(struct logger_log *log,
 			 */
 			return -EFAULT;
 
+	/* print as kernel log if the log string starts with "!@" */
+	if (count >= 2) {
+		if (log->buffer[log->w_off] == '!'
+		    && log->buffer[logger_offset(log, log->w_off + 1)] == '@') {
+			char tmp[256];
+			int i;
+			for (i = 0; i < min(count, sizeof(tmp) - 1); i++)
+				tmp[i] =
+				    log->buffer[logger_offset(log, log->w_off + i)];
+			tmp[i] = '\0';
+			printk("%s\n", tmp);
+		}
+	}
+
 	log->w_off = logger_offset(log, log->w_off + count);
 
 	return count;
