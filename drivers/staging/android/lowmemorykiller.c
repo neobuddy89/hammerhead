@@ -97,6 +97,31 @@ static unsigned long lowmem_deathpending_timeout;
 			pr_info(x);			\
 	} while (0)
 
+static bool avoid_to_kill(uid_t uid)
+{
+	if (uid == 0 ||		/* root */
+		uid == 1001 ||	/* radio */
+		uid == 1002 ||	/* bluetooth */
+		uid == 1010 ||	/* wifi */
+		uid == 1012 ||	/* install */
+		uid == 1013 ||	/* media */
+		uid == 1014 ||	/* dhcp */
+		uid == 1017 ||	/* keystore */
+		uid == 1019)	/* drm */
+		return 1;
+	return 0;
+}
+
+static bool protected_apps(char *comm)
+{
+	if (strcmp(comm, "d.process.acore") == 0 ||
+		strcmp(comm, "ndroid.systemui") == 0 ||
+		strcmp(comm, "ndroid.contacts") == 0 ||
+		strcmp(comm, "d.process.media") == 0)
+		return 1;
+	return 0;
+}
+
 static int test_task_flag(struct task_struct *p, int flag)
 {
 	struct task_struct *t = p;
@@ -254,6 +279,8 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
 	struct task_struct *tsk;
 	struct task_struct *selected = NULL;
+	const struct cred *cred = current_cred(), *pcred; 
+	unsigned int uid = 0;
 	int rem = 0;
 	int tasksize;
 	int i;
@@ -355,11 +382,19 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			    tasksize <= selected_tasksize)
 				continue;
 		}
-		selected = p;
-		selected_tasksize = tasksize;
-		selected_oom_score_adj = oom_score_adj;
-		lowmem_print(2, "select '%s' (%d), adj %hd, size %d, to kill\n",
-			     p->comm, p->pid, oom_score_adj, tasksize);
+		pcred = __task_cred(p);
+		uid = pcred->uid;
+		if ((!avoid_to_kill(uid) && !protected_apps(p->comm)) ||
+				tasksize * (long)(PAGE_SIZE / 1024) >= 80000) {
+			selected = p;
+			selected_tasksize = tasksize;
+			selected_oom_score_adj = oom_score_adj;
+			lowmem_print(2, "select %d (%s), adj %hd, size %d, to kill\n",
+			     	p->pid, p->comm, oom_score_adj, tasksize);
+		} else {
+			lowmem_print(2, "selected skipped %d (%s), adj %hd, size %d, to kill\n",
+			     	p->pid, p->comm, oom_score_adj, tasksize);
+		}
 	}
 	if (selected) {
 		lowmem_print(1, "Killing '%s' (%d), adj %hd,\n" \
@@ -517,6 +552,8 @@ module_param_array_named(adj, lowmem_adj, short, &lowmem_adj_size,
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_array_named(minfree_screen_off, lowmem_minfree_screen_off, uint, &lowmem_minfree_size,
+			 S_IRUGO | S_IWUSR);
+module_param_array_named(minfree_screen_on, lowmem_minfree_screen_on, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
 module_param_named(auto_oom, lowmem_auto_oom, uint, S_IRUGO | S_IWUSR);
