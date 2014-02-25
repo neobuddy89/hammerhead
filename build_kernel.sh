@@ -91,10 +91,6 @@ fi;
 # remove previous initramfs files
 rm -rf $KERNELDIR/out/temp >> /dev/null;
 
-# clean initramfs old compile data
-rm -f $KERNELDIR/usr/initramfs_data.cpio >> /dev/null;
-rm -f $KERNELDIR/usr/initramfs_data.o >> /dev/null;
-
 # wait for the successful ramdisk generation
 while [ $(cat ${TMPFILE}) == 0 ]; do
 	echo "${bldblu}Waiting for Ramdisk generation completion.${txtrst}";
