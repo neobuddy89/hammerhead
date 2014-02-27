@@ -51,7 +51,6 @@ static struct cpufreq_frequency_table *freq_table;
 static struct cpufreq_frequency_table *krait_freq_table;
 #endif
 static unsigned int *l2_khz;
-static bool is_sync;
 static unsigned long *mem_bw;
 static bool hotplug_ready;
 
@@ -176,7 +175,6 @@ static int msm_cpufreq_target(struct cpufreq_policy *policy,
 	int ret = -EFAULT;
 	int index;
 	struct cpufreq_frequency_table *table;
-
 	struct cpufreq_work_struct *cpu_work = NULL;
 
 	mutex_lock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
@@ -237,22 +235,25 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	int ret = 0;
 	struct cpufreq_frequency_table *table = freq_table;
 	struct cpufreq_work_struct *cpu_work = NULL;
+	int cpu;
 
-	/*
-	 * In 8625, 8610, and 8226 both cpu core's frequency can not
+
+ 	/*
+	 * In some SoC, cpu cores' frequencies can not
 	 * be changed independently. Each cpu is bound to
 	 * same frequency. Hence set the cpumask to all cpu.
+	 * In some SoC, some cores are clocked by same source, and their
+	 * frequencies can not be changed independently. Find all other
+	 * CPUs that share same clock, and mark them as controlled by
+	 * same policy.
 	 */
-	if (cpu_is_msm8625() || cpu_is_msm8625q() || cpu_is_msm8226()
-		|| cpu_is_msm8610() || is_sync)
-		cpumask_setall(policy->cpus);
+	for_each_possible_cpu(cpu)
+		if (cpu_clk[cpu] == cpu_clk[policy->cpu])
+			cpumask_set_cpu(cpu, policy->cpus);
 
 	cpu_work = &per_cpu(cpufreq_work, policy->cpu);
 	INIT_WORK(&cpu_work->work, set_cpu_work);
 	init_completion(&cpu_work->complete);
-
-	if (cpu_clk[policy->cpu])
-		return 0;
 
 	if (cpufreq_frequency_table_cpuinfo(policy, table)) {
 #ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX
@@ -581,14 +582,10 @@ static int __init msm_cpufreq_probe(struct platform_device *pdev)
 	for_each_possible_cpu(cpu) {
 		snprintf(clk_name, sizeof(clk_name), "cpu%d_clk", cpu);
 		c = devm_clk_get(dev, clk_name);
-		if (!IS_ERR(c))
-			cpu_clk[cpu] = c;
-		else
-			is_sync = true;
+		if (IS_ERR(c))
+			return PTR_ERR(c);
+		cpu_clk[cpu] = c;
 	}
-
-	if (!cpu_clk[0])
-		return -ENODEV;
 	hotplug_ready = true;
 
 	ret = cpufreq_parse_dt(dev);
