@@ -19,7 +19,7 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/leds.h>
-#include <linux/pwm.h>
+#include <linux/qpnp/pwm.h>
 #include <linux/err.h>
 #ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
@@ -113,9 +113,9 @@ static void mdss_dsi_panel_bklt_pwm(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	pr_debug("%s: ndx=%d level=%d duty=%d\n", __func__,
 					ctrl->ndx, level, duty);
 
-	ret = pwm_config(ctrl->pwm_bl, duty, ctrl->pwm_period);
+	ret = pwm_config_us(ctrl->pwm_bl, duty, ctrl->pwm_period);
 	if (ret) {
-		pr_err("%s: pwm_config() failed err=%d.\n", __func__, ret);
+		pr_err("%s: pwm_config_us() failed err=%d.\n", __func__, ret);
 		return;
 	}
 
