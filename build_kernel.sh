@@ -113,7 +113,7 @@ if [ -e $KERNELDIR/arch/arm/boot/zImage ]; then
 	
 	echo "--- Creating boot.img ---"
 	# copy all needed to out kernel folder
-	./utilities/mkbootimg --kernel zImage --ramdisk ramdisk.gz --cmdline "console=ttyHSL0,115200,n8 androidboot.hardware=hammerhead user_debug=31 msm_watchdog_v2.enable=1 androidboot.selinux=permissive" --base 0x00000000 --pagesize 2048 --ramdisk_offset 0x02900000 --tags_offset 0x02700000 --dt dt.img --output boot.img
+	./utilities/mkbootimg --kernel zImage --ramdisk ramdisk.gz --cmdline "console=ttyHSL0,115200,n8 androidboot.hardware=hammerhead user_debug=31 msm_watchdog_v2.enable=1" --base 0x00000000 --pagesize 2048 --ramdisk_offset 0x02900000 --tags_offset 0x02700000 --dt dt.img --output boot.img
 	rm $KERNELDIR/out/boot.img >> /dev/null;
 	rm $KERNELDIR/out/Chaos-Kernel_* >> /dev/null;
 	cp $KERNELDIR/boot.img /$KERNELDIR/out/
