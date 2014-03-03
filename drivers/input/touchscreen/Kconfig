@@ -1049,6 +1049,7 @@ config TOUCHSCREEN_PREVENT_SLEEP
 	  This disables the sleep function of modified touchscreen drivers.
 
 config PWRKEY_SUSPEND
+	depends on TOUCHSCREEN_PREVENT_SLEEP
 	tristate "Suspend touch wake if power button pressed"
 	default y
 
