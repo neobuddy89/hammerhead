@@ -128,9 +128,9 @@ struct load_thresh_tbl {
 static struct load_thresh_tbl load[] = {
 	LOAD_SCALE(400, 0),
 	LOAD_SCALE(50, 0),
-	LOAD_SCALE(100, 40),
-	LOAD_SCALE(150, 80),
-	LOAD_SCALE(410, 140),
+	LOAD_SCALE(70, 40),
+	LOAD_SCALE(110, 80),
+	LOAD_SCALE(200, 120),
 };
 
 static void apply_down_lock(void)
