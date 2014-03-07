@@ -1,8 +1,8 @@
 config EXFAT_FS
-	tristate "exFAT filesystem support (Samsung OSRC)"
+	tristate "exFAT filesystem support"
 	select NLS
 	help
-	  exFAT driver released by Samsung OSRC
+	  exFAT driver from Samsung
 
 config EXFAT_DEFAULT_CODEPAGE
 	int "Default codepage for exFAT"
