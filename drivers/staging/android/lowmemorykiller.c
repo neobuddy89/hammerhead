@@ -280,7 +280,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
 	struct task_struct *tsk;
 	struct task_struct *selected = NULL;
-	const struct cred *cred = current_cred(), *pcred; 
+	const struct cred *pcred;
 	unsigned int uid = 0;
 	int rem = 0;
 	int tasksize;
