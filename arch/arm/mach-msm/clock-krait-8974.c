@@ -587,7 +587,7 @@ static void krait_update_uv(int *uv, int num, int boost_uv)
 }
 
 #ifdef CONFIG_MSM_CPU_VOLTAGE_CONTROL
-#define CPU_VDD_MAX	1200
+#define CPU_VDD_MAX	1225
 #define CPU_VDD_MIN	650
 
 extern int use_for_scaling(unsigned int freq);
