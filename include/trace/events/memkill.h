@@ -84,7 +84,7 @@ TRACE_EVENT(oom_kill_shared,
 TRACE_EVENT(lmk_kill,
 		TP_PROTO(pid_t pid_nr, const char *comm,
 			short selected_oom_adj, int selected_tasksize,
-			int min_adj),
+			short min_adj),
 
 		TP_ARGS(pid_nr, comm, selected_oom_adj, selected_tasksize,
 			min_adj),
@@ -94,7 +94,7 @@ TRACE_EVENT(lmk_kill,
 			__array(char,		comm,	TASK_COMM_LEN)
 			__field(short,		selected_oom_adj)
 			__field(int,		selected_tasksize)
-			__field(int,		min_adj)
+			__field(short,		min_adj)
 			__field(long,		cached)
 			__field(unsigned long,	freeswap)
 		),
