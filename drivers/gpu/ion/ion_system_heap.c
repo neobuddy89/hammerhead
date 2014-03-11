@@ -29,11 +29,9 @@
 #include <linux/dma-mapping.h>
 #include <trace/events/kmem.h>
 
-static unsigned int high_order_gfp_flags = (GFP_HIGHUSER |
-					    __GFP_NOWARN | __GFP_NORETRY |
-					    __GFP_NO_KSWAPD) & ~__GFP_WAIT;
-static unsigned int low_order_gfp_flags  = (GFP_HIGHUSER |
-					 __GFP_NOWARN);
+static gfp_t high_order_gfp_flags = (GFP_HIGHUSER | __GFP_NOWARN |
+				     __GFP_NORETRY) & ~__GFP_WAIT;
+static gfp_t low_order_gfp_flags  = (GFP_HIGHUSER | __GFP_NOWARN);
 static const unsigned int orders[] = {9, 8, 4, 0};
 static const int num_orders = ARRAY_SIZE(orders);
 static int order_to_index(unsigned int order)
@@ -70,7 +68,6 @@ static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 				      bool *from_pool)
 {
 	bool cached = ion_buffer_cached(buffer);
-	bool split_pages = ion_buffer_fault_user_mappings(buffer);
 	struct page *page;
 	struct ion_page_pool *pool;
 
@@ -82,8 +79,6 @@ static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 	if (!page)
 		return 0;
 
-	if (split_pages)
-		split_page(page, order);
 	return page;
 }
 
@@ -92,23 +87,16 @@ static void free_buffer_page(struct ion_system_heap *heap,
 			     unsigned int order)
 {
 	bool cached = ion_buffer_cached(buffer);
-	bool split_pages = ion_buffer_fault_user_mappings(buffer);
-	int i;
 
-	if ((buffer->flags & ION_FLAG_FREED_FROM_SHRINKER)) {
-		if (split_pages) {
-			for (i = 0; i < (1 << order); i++)
-				__free_page(page + i);
-		} else {
-			__free_pages(page, order);
-		}
-	} else  {
+	if (!(buffer->flags & ION_FLAG_FREED_FROM_SHRINKER)) {
 		struct ion_page_pool *pool;
 		if (cached)
 			pool = heap->cached_pools[order_to_index(order)];
 		else
 			pool = heap->uncached_pools[order_to_index(order)];
 		ion_page_pool_free(pool, page);
+	} else {
+		__free_pages(page, order);
 	}
 }
 
@@ -192,7 +180,6 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 	unsigned int max_order = orders[0];
 	struct pages_mem data;
 	unsigned int sz;
-	bool split_pages = ion_buffer_fault_user_mappings(buffer);
 
 	data.size = 0;
 	INIT_LIST_HEAD(&pages);
@@ -220,17 +207,11 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 
 	if (ret)
 		goto err;
-
-	table = kmalloc(sizeof(struct sg_table), GFP_KERNEL);
+	table = kzalloc(sizeof(struct sg_table), GFP_KERNEL);
 	if (!table)
 		goto err_free_data_pages;
 
-	if (split_pages)
-		ret = sg_alloc_table(table, PAGE_ALIGN(size) / PAGE_SIZE,
-				     GFP_KERNEL);
-	else
-		ret = sg_alloc_table(table, i, GFP_KERNEL);
-
+	ret = sg_alloc_table(table, i, GFP_KERNEL);
 	if (ret)
 		goto err1;
 
@@ -338,7 +319,7 @@ void ion_system_heap_free(struct ion_buffer *buffer)
 
 	for_each_sg(table->sgl, sg, table->nents, i)
 		free_buffer_page(sys_heap, buffer, sg_page(sg),
-				get_order(sg_dma_len(sg)));
+				get_order(sg->length));
 	sg_free_table(table);
 	kfree(table);
 }
@@ -543,74 +524,73 @@ void ion_system_heap_destroy(struct ion_heap *heap)
 	kfree(sys_heap);
 }
 
-struct kmalloc_buffer_info {
-	struct sg_table *table;
-	void *vaddr;
-};
-
 static int ion_system_contig_heap_allocate(struct ion_heap *heap,
 					   struct ion_buffer *buffer,
 					   unsigned long len,
 					   unsigned long align,
 					   unsigned long flags)
 {
+	int order = get_order(len);
+	struct page *page;
+	struct sg_table *table;
+	unsigned long i;
 	int ret;
-	struct kmalloc_buffer_info *info;
 
-	info = kmalloc(sizeof(struct kmalloc_buffer_info), GFP_KERNEL);
-	if (!info) {
+	page = alloc_pages(low_order_gfp_flags, order);
+	if (!page)
+		return -ENOMEM;
+
+	split_page(page, order);
+
+	len = PAGE_ALIGN(len);
+	for (i = len >> PAGE_SHIFT; i < (1 << order); i++)
+		__free_page(page + i);
+
+	table = kzalloc(sizeof(struct sg_table), GFP_KERNEL);
+	if (!table) {
 		ret = -ENOMEM;
 		goto out;
 	}
 
-	info->table = kzalloc(sizeof(struct sg_table), GFP_KERNEL);
-	if (!info->table) {
-		ret = -ENOMEM;
-		goto kfree_info;
-	}
-
-	ret = sg_alloc_table(info->table, 1, GFP_KERNEL);
+	ret = sg_alloc_table(table, 1, GFP_KERNEL);
 	if (ret)
-		goto kfree_table;
+		goto out;
 
-	info->vaddr = kzalloc(len, GFP_KERNEL);
-	if (!info->vaddr) {
-		ret = -ENOMEM;
-		goto sg_free_table;
-	}
+	sg_set_page(table->sgl, page, len, 0);
 
-	sg_set_page(info->table->sgl, virt_to_page(info->vaddr), len,
-		    0);
-	sg_dma_address(info->table->sgl) = virt_to_phys(info->vaddr);
-	dma_sync_sg_for_device(NULL, info->table->sgl, 1, DMA_BIDIRECTIONAL);
+	buffer->priv_virt = table;
 
-	buffer->priv_virt = info;
+	ion_pages_sync_for_device(NULL, page, len, DMA_BIDIRECTIONAL);
+
 	return 0;
 
-sg_free_table:
-	sg_free_table(info->table);
-kfree_table:
-	kfree(info->table);
-kfree_info:
-	kfree(info);
 out:
+	for (i = 0; i < len >> PAGE_SHIFT; i++)
+		__free_page(page + i);
+	kfree(table);
 	return ret;
 }
 
 void ion_system_contig_heap_free(struct ion_buffer *buffer)
 {
-	struct kmalloc_buffer_info *info = buffer->priv_virt;
-	sg_free_table(info->table);
-	kfree(info->table);
-	kfree(info->vaddr);
+	struct sg_table *table = buffer->priv_virt;
+	struct page *page = sg_page(table->sgl);
+	unsigned long pages = PAGE_ALIGN(buffer->size) >> PAGE_SHIFT;
+	unsigned long i;
+
+	for (i = 0; i < pages; i++)
+		__free_page(page + i);
+	sg_free_table(table);
+	kfree(table);
 }
 
 static int ion_system_contig_heap_phys(struct ion_heap *heap,
 				       struct ion_buffer *buffer,
 				       ion_phys_addr_t *addr, size_t *len)
 {
-	struct kmalloc_buffer_info *info = buffer->priv_virt;
-	*addr = virt_to_phys(info->vaddr);
+	struct sg_table *table = buffer->priv_virt;
+	struct page *page = sg_page(table->sgl);
+	*addr = page_to_phys(page);
 	*len = buffer->size;
 	return 0;
 }
@@ -618,8 +598,7 @@ static int ion_system_contig_heap_phys(struct ion_heap *heap,
 struct sg_table *ion_system_contig_heap_map_dma(struct ion_heap *heap,
 						struct ion_buffer *buffer)
 {
-	struct kmalloc_buffer_info *info = buffer->priv_virt;
-	return info->table;
+	return buffer->priv_virt;
 }
 
 void ion_system_contig_heap_unmap_dma(struct ion_heap *heap,
