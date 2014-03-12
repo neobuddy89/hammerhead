@@ -27,6 +27,13 @@ static struct gpiomux_setting gpio_uart_config = {
 	.dir = GPIOMUX_OUT_HIGH,
 };
 
+static struct gpiomux_setting gpio_uart_susp_config = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
+	.dir = GPIOMUX_OUT_HIGH,
+};
+
 static struct gpiomux_setting slimbus = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
@@ -323,13 +330,15 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 	{
 		.gpio      = 0,			/* BLSP2 UART TX */
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_uart_config,
+			[GPIOMUX_ACTIVE] = &gpio_uart_config,
+			[GPIOMUX_SUSPENDED] = &gpio_uart_susp_config,
 		},
 	},
 	{
 		.gpio      = 1,			/* BLSP2 UART RX */
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_uart_config,
+			[GPIOMUX_ACTIVE] = &gpio_uart_config,
+			[GPIOMUX_SUSPENDED] = &gpio_uart_susp_config,
 		},
 	},
 };
