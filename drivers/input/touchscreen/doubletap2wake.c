@@ -59,13 +59,12 @@ MODULE_LICENSE("GPLv2");
 /* Tuneables */
 #define DT2W_DEBUG		0
 #define DT2W_DEFAULT		0
-
 #define DT2W_PWRKEY_DUR		60
-#define DT2W_FEATHER		200
 #define DT2W_TIME		700
 
 /* Resources */
 int dt2w_switch = DT2W_DEFAULT;
+int dt2w_feather = 200, dt2w_feather_w = 1;
 static cputime64_t tap_time_pre = 0;
 static int touch_x = 0, touch_y = 0, touch_nr = 0, x_pre = 0, y_pre = 0;
 static bool touch_x_called = false, touch_y_called = false, touch_cnt = true;
@@ -93,6 +92,23 @@ static int __init read_dt2w_cmdline(char *dt2w)
 	return 1;
 }
 __setup("dt2w=", read_dt2w_cmdline);
+
+static int __init read_dt2w_feather_cmdline(char *feather)
+{
+	if (strcmp(feather, "1") == 0)
+		dt2w_feather_w = 1;
+	else if (strcmp(feather, "2") == 0)
+		dt2w_feather_w = 2;
+	else if (strcmp(feather, "3") == 0)
+		dt2w_feather_w = 3;
+	else {
+		pr_info("[dt2w_feather]: Input sensitivity not set. Going with default. | feather='%s'\n", feather);
+		dt2w_feather_w = 1;
+	}
+	pr_info("[dt2w_feather]: Input sensitivity set. | feather='%s'\n", feather);
+	return 1;
+}
+__setup("feather=", read_dt2w_feather_cmdline);
 
 /* reset on finger release */
 static void doubletap2wake_reset(void) {
@@ -149,13 +165,19 @@ static void detect_doubletap2wake(int x, int y, bool st)
         pr_info(LOGTAG"x,y(%4d,%4d) single:%s\n",
                 x, y, (single_touch) ? "true" : "false");
 #endif
+	if (dt2w_feather_w == 2)
+		dt2w_feather = 100;
+	else if (dt2w_feather_w == 3)
+		dt2w_feather = 40;
+	else
+		dt2w_feather = 200;
 	if ((single_touch) && (dt2w_switch > 0) && (exec_count) && (touch_cnt)) {
 		touch_cnt = false;
 		if (touch_nr == 0) {
 			new_touch(x, y);
 		} else if (touch_nr == 1) {
-			if ((calc_feather(x, x_pre) < DT2W_FEATHER) &&
-			    (calc_feather(y, y_pre) < DT2W_FEATHER) &&
+			if ((calc_feather(x, x_pre) < dt2w_feather) &&
+			    (calc_feather(y, y_pre) < dt2w_feather) &&
 			    ((ktime_to_ms(ktime_get())-tap_time_pre) < DT2W_TIME))
 				touch_nr++;
 			else {
@@ -339,6 +361,30 @@ static ssize_t dt2w_doubletap2wake_dump(struct device *dev,
 static DEVICE_ATTR(doubletap2wake, (S_IWUSR|S_IRUGO),
 	dt2w_doubletap2wake_show, dt2w_doubletap2wake_dump);
 
+static ssize_t dt2w_feather_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+
+	count += sprintf(buf, "%d\n", dt2w_feather_w);
+
+	return count;
+}
+
+static ssize_t dt2w_feather_dump(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	if (buf[0] >= '1' && buf[0] <= '3' && buf[1] == '\n') {
+		if (dt2w_feather_w != buf[0] - '0')
+			dt2w_feather_w = buf[0] - '0';
+	} else
+		dt2w_feather_w = '1';
+	return count;
+}
+
+static DEVICE_ATTR(doubletap2wake_feather, (S_IWUSR|S_IRUGO),
+	dt2w_feather_show, dt2w_feather_dump);
+
 static ssize_t dt2w_version_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -419,6 +465,10 @@ static int __init doubletap2wake_init(void)
 	rc = sysfs_create_file(android_touch_kobj, &dev_attr_doubletap2wake_version.attr);
 	if (rc) {
 		pr_warn("%s: sysfs_create_file failed for doubletap2wake_version\n", __func__);
+	}
+	rc = sysfs_create_file(android_touch_kobj, &dev_attr_doubletap2wake_feather.attr);
+	if (rc) {
+		pr_warn("%s: sysfs_create_file failed for doubletap2wake_feather\n", __func__);
 	}
 
 err_input_dev:
