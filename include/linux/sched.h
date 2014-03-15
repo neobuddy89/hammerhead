@@ -2697,6 +2697,11 @@ extern struct atomic_notifier_head migration_notifier_head;
 #ifdef CONFIG_ANDROID_BG_SCAN_MEM
 extern struct raw_notifier_head bgtsk_migration_notifier_head;
 #endif
+struct migration_notify_data {
+	int src_cpu;
+	int dest_cpu;
+	int load;
+};
 
 extern long sched_setaffinity(pid_t pid, const struct cpumask *new_mask);
 extern long sched_getaffinity(pid_t pid, struct cpumask *mask);
