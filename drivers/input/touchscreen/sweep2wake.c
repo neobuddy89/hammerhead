@@ -32,11 +32,7 @@
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <linux/input.h>
-#ifndef CONFIG_HAS_EARLYSUSPEND
 #include <linux/lcd_notify.h>
-#else
-#include <linux/earlysuspend.h>
-#endif
 #include <linux/hrtimer.h>
 
 /* uncomment since no touchscreen defines android touch, do that here */
@@ -59,23 +55,12 @@ MODULE_LICENSE("GPLv2");
 #define S2W_S2SONLY_DEFAULT	0
 #define S2W_PWRKEY_DUR          60
 
-#ifdef CONFIG_MACH_MSM8974_HAMMERHEAD
-/* Hammerhead aka Nexus 5 */
 #define DEFAULT_S2W_Y_MAX               1920
 #define DEFAULT_S2W_X_MAX               1080
 #define DEFAULT_S2W_Y_LIMIT             DEFAULT_S2W_Y_MAX-130
 #define DEFAULT_S2W_X_B1                400
 #define DEFAULT_S2W_X_B2                700
 #define DEFAULT_S2W_X_FINAL             250
-#else
-/* defaults */
-#define S2W_Y_LIMIT             2350
-#define S2W_X_MAX               1540
-#define S2W_X_B1                500
-#define S2W_X_B2                1000
-#define S2W_X_FINAL             300
-#endif
-
 
 /* Resources */
 int s2w_switch = S2W_DEFAULT, s2w_s2sonly = S2W_S2SONLY_DEFAULT;
@@ -83,9 +68,7 @@ static int touch_x = 0, touch_y = 0;
 static bool touch_x_called = false, touch_y_called = false;
 static bool scr_suspended = false, exec_count = true;
 static bool scr_on_touch = false, barrier[2] = {false, false};
-#ifndef CONFIG_HAS_EARLYSUSPEND
 static struct notifier_block s2w_lcd_notif;
-#endif
 static struct input_dev * sweep2wake_pwrdev;
 static DEFINE_MUTEX(pwrkeyworklock);
 static struct workqueue_struct *s2w_input_wq;
@@ -94,8 +77,6 @@ static struct work_struct s2w_input_work;
 static int s2w_start_posn = DEFAULT_S2W_X_B1;
 static int s2w_mid_posn = DEFAULT_S2W_X_B2;
 static int s2w_end_posn = (DEFAULT_S2W_X_MAX - DEFAULT_S2W_X_FINAL);
-static int s2w_threshold = DEFAULT_S2W_X_FINAL;
-//static int s2w_max_posn = DEFAULT_S2W_X_MAX;
 
 static int s2w_swap_coord = 0;
 
@@ -283,23 +264,6 @@ static ssize_t s2w_end_posn_store(struct kobject *kobj,
 	return count;
 }
 
-static ssize_t s2w_threshold_show(struct kobject *kobj,
-	struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%i\n", s2w_threshold);
-}
-
-static ssize_t s2w_threshold_store(struct kobject *kobj,
-	struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	unsigned int data;
-	if(sscanf(buf, "%i\n", &data) == 1)
-		s2w_threshold = data;
-	else
-		pr_info("%s: unknown input!\n", __FUNCTION__);
-	return count;
-}
-
 static ssize_t s2w_swap_coord_show(struct kobject *kobj,
 	struct kobj_attribute *attr, char *buf)
 {
@@ -335,12 +299,6 @@ static struct kobj_attribute s2w_end_posn_attribute =
 		s2w_end_posn_show,
 		s2w_end_posn_store);
 
-static struct kobj_attribute s2w_threshold_attribute =
-	__ATTR(s2w_threshold,
-		0666,
-		s2w_threshold_show,
-		s2w_threshold_store);
-
 static struct kobj_attribute s2w_swap_coord_attribute =
 	__ATTR(s2w_swap_coord,
 		0666,
@@ -352,7 +310,6 @@ static struct attribute *s2w_parameters_attrs[] =
 		&s2w_start_posn_attribute.attr,
 		&s2w_mid_posn_attribute.attr,
 		&s2w_end_posn_attribute.attr,
-		&s2w_threshold_attribute.attr,
 		&s2w_swap_coord_attribute.attr,
 		NULL,
 	};
@@ -468,7 +425,6 @@ static struct input_handler s2w_input_handler = {
 	.id_table	= s2w_ids,
 };
 
-#ifndef CONFIG_HAS_EARLYSUSPEND
 static int lcd_notifier_callback(struct notifier_block *this,
 				unsigned long event, void *data)
 {
@@ -485,21 +441,6 @@ static int lcd_notifier_callback(struct notifier_block *this,
 
 	return 0;
 }
-#else
-static void s2w_early_suspend(struct early_suspend *h) {
-	scr_suspended = true;
-}
-
-static void s2w_late_resume(struct early_suspend *h) {
-	scr_suspended = false;
-}
-
-static struct early_suspend s2w_early_suspend_handler = {
-	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
-	.suspend = s2w_early_suspend,
-	.resume = s2w_late_resume,
-};
-#endif
 
 /*
  * SYSFS stuff below here
@@ -623,14 +564,10 @@ static int __init sweep2wake_init(void)
 	if (rc)
 		pr_err("%s: Failed to register s2w_input_handler\n", __func__);
 
-#ifndef CONFIG_HAS_EARLYSUSPEND
 	s2w_lcd_notif.notifier_call = lcd_notifier_callback;
 	if (lcd_register_client(&s2w_lcd_notif) != 0) {
 		pr_err("%s: Failed to register lcd callback\n", __func__);
 	}
-#else
-	register_early_suspend(&s2w_early_suspend_handler);
-#endif
 
 #ifndef ANDROID_TOUCH_DECLARED
 	android_touch_kobj = kobject_create_and_add("android_touch", NULL) ;
@@ -664,9 +601,7 @@ static void __exit sweep2wake_exit(void)
 #ifndef ANDROID_TOUCH_DECLARED
 	kobject_del(android_touch_kobj);
 #endif
-#ifndef CONFIG_HAS_EARLYSUSPEND
 	lcd_unregister_client(&s2w_lcd_notif);
-#endif
 	input_unregister_handler(&s2w_input_handler);
 	destroy_workqueue(s2w_input_wq);
 	input_unregister_device(sweep2wake_pwrdev);
