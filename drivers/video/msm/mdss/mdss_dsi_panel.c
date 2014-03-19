@@ -382,23 +382,6 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 {
 	struct mipi_panel_info *mipi;
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE) || defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-	bool prevent_sleep = false;
-#endif
-#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
-	prevent_sleep = (s2w_switch > 0) && (s2w_s2sonly == 0);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-	prevent_sleep = prevent_sleep || (dt2w_switch > 0);
-#endif
-	if (prevent_sleep && in_phone_call)
-		prevent_sleep = false;
-#endif
-#ifdef CONFIG_PWRKEY_SUSPEND
-	if (pwrkey_pressed)
-		prevent_sleep = false;
-#endif
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -419,11 +402,9 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 
 	if (local_pdata->on_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &local_pdata->on_cmds);
-
 #ifdef CONFIG_PWRKEY_SUSPEND
 	pwrkey_pressed = false;	
 #endif
-		
 	pr_info("%s\n", __func__);
 	return 0;
 }
@@ -437,11 +418,17 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	bool prevent_sleep = false;
 #endif
 #if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
-	prevent_sleep = (s2w_switch > 0);
+	prevent_sleep = (s2w_switch > 0) && (s2w_s2sonly == 0);
 #endif
 #if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
 	prevent_sleep = prevent_sleep || (dt2w_switch > 0);
 #endif
+	if (prevent_sleep && in_phone_call)
+		prevent_sleep = false;
+#endif
+#ifdef CONFIG_PWRKEY_SUSPEND
+	if (pwrkey_pressed)
+		prevent_sleep = false;
 #endif
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
