@@ -233,7 +233,7 @@ static void lm3630_set_main_current_level(struct i2c_client *client, int level)
 		if (bl_dimmer) {
 			int max_cur = dev->max_current;
 			if (level < bl_thresh)
-				max_cur = level - bl_offset;
+				max_cur = max(level - bl_offset, 0);
 			pr_debug("%s: max_current %d level %d\n",
 				 __func__, max_cur, level);
 			lm3630_set_max_current_reg(dev, max_cur);
