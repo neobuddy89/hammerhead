@@ -29,7 +29,6 @@
 #include <linux/i2c.h>
 #include <linux/of_gpio.h>
 #include <linux/debugfs.h>
-#include <linux/moduleparam.h>
 
 #ifdef CONFIG_MACH_LGE
 /* HACK: disable fb notifier unless off-mode charge */
@@ -71,9 +70,6 @@
 
 #define BL_OFF 0x00
 
-bool backlight_dimmer = false;
-module_param(backlight_dimmer, bool, 0755);
-
 enum {
 	LED_BANK_A,
 	LED_BANK_B,
@@ -109,6 +105,15 @@ static const struct i2c_device_id lm3630_bl_id[] = {
 static struct lm3630_device *lm3630_dev;
 
 static void lm3630_set_max_current_reg(struct lm3630_device *dev, int val);
+
+static bool bl_dimmer = true;
+module_param_named(backlight_dimmer, bl_dimmer, bool, 0644);
+
+static int bl_thresh = 15;
+module_param_named(backlight_threshold, bl_thresh, int, 0644);
+
+static int bl_offset = 0;
+module_param_named(backlight_offset, bl_offset, int, 0644);
 
 struct debug_reg {
 	char  *name;
@@ -217,61 +222,34 @@ static void lm3630_set_main_current_level(struct i2c_client *client, int level)
 {
 	struct lm3630_device *dev = i2c_get_clientdata(client);
 
-	int max_current;
-	int brightness;
-
 	mutex_lock(&backlight_mtx);
 	dev->bl_dev->props.brightness = level;
+	if (level != 0) {
+		if (level < dev->min_brightness)
+			level = dev->min_brightness;
+		else if (level > dev->max_brightness)
+			level = dev->max_brightness;
 
-	if (backlight_dimmer) {
-
-		if (level == 0) {
-			lm3630_write_reg(client, CONTROL_REG, BL_OFF);
-		} else if (level == 1) {
-			lm3630_set_max_current_reg(dev, 0);
-			lm3630_set_brightness_reg(dev, 1);
+		if (bl_dimmer) {
+			int max_cur = dev->max_current;
+			if (level < bl_thresh)
+				max_cur = level - bl_offset;
+			pr_debug("%s: max_current %d level %d\n",
+				 __func__, max_cur, level);
+			lm3630_set_max_current_reg(dev, max_cur);
+			lm3630_set_brightness_reg(dev, level);
+		} else if (dev->blmap) {
+			if (level < dev->blmap_size)
+				lm3630_set_brightness_reg(dev, dev->blmap[level]);
+			else
+				pr_err("%s: invalid index %d:%d\n", __func__,
+						dev->blmap_size, level);
 		} else {
-			if (level > 255) level = 255;
-			else if (level < 2) level = 2;
-	
-			if (level < 15) {
-				max_current = 0;
-				brightness = level - 1;
-			} else if (level < 89) {
-				max_current = 18;
-				brightness = 5 + ((level - 15) * 250 / 235);
-			} else {
-				max_current = 18;
-				brightness = level;
-			}
-	
-			lm3630_set_max_current_reg(dev, max_current);
-			lm3630_set_brightness_reg(dev, brightness);
+			lm3630_set_brightness_reg(dev, level);
 		}
-
 	} else {
-
-		if (level != 0) {
-			if (level < dev->min_brightness)
-				level = dev->min_brightness;
-			else if (level > dev->max_brightness)
-				level = dev->max_brightness;
-	
-			if (dev->blmap) {
-				if (level < dev->blmap_size)
-					lm3630_set_brightness_reg(dev, dev->blmap[level]);
-				else
-					pr_err("%s: invalid index %d:%d\n", __func__,
-							dev->blmap_size, level);
-			} else {
-				lm3630_set_brightness_reg(dev, level);
-			}
-		} else {
-			lm3630_write_reg(client, CONTROL_REG, BL_OFF);
-		}
-
+		lm3630_write_reg(client, CONTROL_REG, BL_OFF);
 	}
-
 	mutex_unlock(&backlight_mtx);
 	pr_debug("%s: level=%d\n", __func__, level);
 }
@@ -293,16 +271,14 @@ static void lm3630_hw_init(struct lm3630_device *dev)
 	lm3630_hw_reset(dev);
 	lm3630_write_reg(dev->client, BOOST_CTL_REG, dev->boost_ctrl_reg);
 	lm3630_write_reg(dev->client, CONFIG_REG, dev->cfg_reg);
-	if (!backlight_dimmer)
-		lm3630_set_max_current_reg(dev, dev->max_current);
+	lm3630_set_max_current_reg(dev, dev->max_current);
 	lm3630_write_reg(dev->client, CONTROL_REG, dev->ctrl_reg);
 	mdelay(1);
 }
 
 static void lm3630_backlight_on(struct lm3630_device *dev, int level)
 {
-	if ((dev->bl_dev->props.brightness == 0 && !backlight_dimmer) ||
-				 (dev->bl_dev->props.brightness == 0 && level != 0 && backlight_dimmer)) {
+	if (dev->bl_dev->props.brightness == 0) {
 		lm3630_hw_init(dev);
 		pr_info("%s\n", __func__);
 	}
