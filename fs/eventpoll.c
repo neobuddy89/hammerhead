@@ -1950,8 +1950,8 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
 			return -EINVAL;
 		if (copy_from_user(&ksigmask, sigmask, sizeof(ksigmask)))
 			return -EFAULT;
-		sigdelsetmask(&ksigmask, sigmask(SIGKILL) | sigmask(SIGSTOP));
-		sigprocmask(SIG_SETMASK, &ksigmask, &sigsaved);
+		sigsaved = current->blocked;
+		set_current_blocked(&ksigmask);
 	}
 
 	error = sys_epoll_wait(epfd, events, maxevents, timeout);
@@ -1968,7 +1968,7 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
 			       sizeof(sigsaved));
 			set_restore_sigmask();
 		} else
-			sigprocmask(SIG_SETMASK, &sigsaved, NULL);
+			set_current_blocked(&sigsaved);
 	}
 
 	return error;
