@@ -135,7 +135,7 @@
 	rpm-regulator-smpb4 {
 		status = "okay";
 		pm8841_s4: regulator-s4 {
-			regulator-min-microvolt = <815000>;
+			regulator-min-microvolt = <500000>;
 			regulator-max-microvolt = <900000>;
 			status = "okay";
 		};
@@ -495,7 +495,7 @@
 			regulator-min-microvolt = <500000>;
 			regulator-max-microvolt = <1225000>;
 			qcom,headroom-voltage = <150000>;
-			qcom,retention-voltage = <600000>;
+			qcom,retention-voltage = <575000>;
 			qcom,ldo-default-voltage = <750000>;
 			qcom,ldo-threshold-voltage = <850000>;
 			qcom,ldo-delta-voltage = <50000>;
@@ -511,7 +511,7 @@
 			regulator-min-microvolt = <500000>;
 			regulator-max-microvolt = <1225000>;
 			qcom,headroom-voltage = <150000>;
-			qcom,retention-voltage = <600000>;
+			qcom,retention-voltage = <575000>;
 			qcom,ldo-default-voltage = <750000>;
 			qcom,ldo-threshold-voltage = <850000>;
 			qcom,ldo-delta-voltage = <50000>;
@@ -527,7 +527,7 @@
 			regulator-min-microvolt = <500000>;
 			regulator-max-microvolt = <1225000>;
 			qcom,headroom-voltage = <150000>;
-			qcom,retention-voltage = <600000>;
+			qcom,retention-voltage = <575000>;
 			qcom,ldo-default-voltage = <750000>;
 			qcom,ldo-threshold-voltage = <850000>;
 			qcom,ldo-delta-voltage = <50000>;
