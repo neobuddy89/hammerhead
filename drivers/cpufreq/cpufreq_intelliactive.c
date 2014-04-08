@@ -90,7 +90,7 @@ static unsigned long min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 /*
  * The sample rate of the timer used to increase frequency
  */
-#define DEFAULT_TIMER_RATE (20 * USEC_PER_MSEC)
+#define DEFAULT_TIMER_RATE 30000
 static unsigned long timer_rate = DEFAULT_TIMER_RATE;
 
 /* Busy SDF parameters*/
@@ -129,9 +129,9 @@ static bool io_is_busy = 1;
  * up_threshold_any_cpu_freq then do not let the frequency to drop below
  * sync_freq
  */
-static unsigned int up_threshold_any_cpu_load = 95;
-static unsigned int sync_freq = 729600;
-static unsigned int up_threshold_any_cpu_freq = 960000;
+static unsigned int up_threshold_any_cpu_load = 70;
+static unsigned int sync_freq = 1036800;
+static unsigned int up_threshold_any_cpu_freq = 1497600;
 
 static int two_phase_freq_array[NR_CPUS] = {[0 ... NR_CPUS-1] = 1728000} ;
 
@@ -1545,4 +1545,3 @@ MODULE_AUTHOR("Paul Reioux <reioux@gmail.com>");
 MODULE_DESCRIPTION("'cpufreq_intelliactive' - A cpufreq governor for "
 	"Latency sensitive workloads based on Google's Interactive");
 MODULE_LICENSE("GPL");
-
