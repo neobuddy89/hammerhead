@@ -269,7 +269,8 @@ struct buffer_info *get_same_fd_buffer(struct msm_vidc_inst *inst,
 		list_for_each_entry(temp, list, list) {
 			for (i = 0; (i < temp->num_planes)
 				&& (i < VIDEO_MAX_PLANES); i++) {
-				if (temp && temp->fd[i] == fd)  {
+				if (temp && (temp->fd[i] == fd) &&
+					temp->handle[i] && temp->mapped[i]) {
 					temp->same_fd_ref[i]++;
 					dprintk(VIDC_INFO,
 					"Found same fd buffer\n");
