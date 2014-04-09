@@ -97,7 +97,7 @@ static void wakefunc_rtc_cancel(void)
 	if (ret)
 		pr_info("%s: Timeout canceled\n", WAKEFUNC);
 	else
-		pr_info("%s: Nothing to cancel\n",
+		pr_debug("%s: Nothing to cancel\n",
 				WAKEFUNC);
 }
 
