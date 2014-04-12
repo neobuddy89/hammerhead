@@ -222,20 +222,17 @@ static int publish_unreleased_reference(struct msm_vidc_inst *inst)
 
 	list = &inst->registered_bufs;
 	mutex_lock(&inst->lock);
-	if (inst->output_alloc_mode & HAL_BUFFER_MODE_DYNAMIC) {
-		if (!list_empty(list)) {
-			list_for_each_entry_safe(temp, dummy, list, list) {
-				if (temp && temp->type ==
-					V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
-					!temp->inactive
-					&& atomic_read(&temp->ref_count)) {
-						write_str(&dbg_buf,
-						"\tpending buffer: 0x%x fd[0] = %d ref_count = %d held by: %s\n",
-						temp->device_addr[0],
-						temp->fd[0],
-						atomic_read(&temp->ref_count),
-						DYNAMIC_BUF_OWNER(temp));
-				}
+	if (inst->buffer_mode_set[CAPTURE_PORT] == HAL_BUFFER_MODE_DYNAMIC) {
+		list_for_each_entry_safe(temp, dummy, list, list) {
+			if (temp && temp->type ==
+			V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
+			!temp->inactive && atomic_read(&temp->ref_count)) {
+				write_str(&dbg_buf,
+				"\tpending buffer: 0x%x fd[0] = %d ref_count = %d held by: %s\n",
+				temp->device_addr[0],
+				temp->fd[0],
+				atomic_read(&temp->ref_count),
+				DYNAMIC_BUF_OWNER(temp));
 			}
 		}
 	}
@@ -271,14 +268,14 @@ static ssize_t inst_info_read(struct file *file, char __user *buf,
 		write_str(
 		&dbg_buf, "type: %s\n", inst->fmts[i]->type == OUTPUT_PORT ?
 		"Output" : "Capture");
-		switch (inst->fmts[i]->buf_type) {
-		case V4L2_MPEG_VIDC_VIDEO_STATIC:
+		switch (inst->buffer_mode_set[i]) {
+		case HAL_BUFFER_MODE_STATIC:
 			write_str(&dbg_buf, "buffer mode : %s\n", "static");
 			break;
-		case V4L2_MPEG_VIDC_VIDEO_RING:
+		case HAL_BUFFER_MODE_RING:
 			write_str(&dbg_buf, "buffer mode : %s\n", "ring");
 			break;
-		case V4L2_MPEG_VIDC_VIDEO_DYNAMIC:
+		case HAL_BUFFER_MODE_DYNAMIC:
 			write_str(&dbg_buf, "buffer mode : %s\n", "dynamic");
 			break;
 		default:

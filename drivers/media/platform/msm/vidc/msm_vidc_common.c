@@ -443,8 +443,7 @@ static void handle_session_init_done(enum command_response cmd, void *data)
 			inst->capability.scale_x = session_init_done->scale_x;
 			inst->capability.scale_y = session_init_done->scale_y;
 			inst->capability.capability_set = true;
-
-			inst->output_alloc_mode_supported =
+			inst->capability.buffer_mode[CAPTURE_PORT] =
 				session_init_done->alloc_mode_out;
 		} else {
 			dprintk(VIDC_ERR,
@@ -970,7 +969,7 @@ static void handle_dynamic_buffer(struct msm_vidc_inst *inst,
 	 * Update reference count and release OR queue back the buffer,
 	 * only when firmware is not holding a reference.
 	 */
-	if (inst->output_alloc_mode & HAL_BUFFER_MODE_DYNAMIC) {
+	if (inst->buffer_mode_set[CAPTURE_PORT] == HAL_BUFFER_MODE_DYNAMIC) {
 		binfo = device_to_uvaddr(inst, &inst->registered_bufs,
 				device_addr);
 		if (!binfo) {
@@ -2607,7 +2606,7 @@ void msm_comm_flush_dynamic_buffers(struct msm_vidc_inst *inst)
 	struct buffer_info *binfo = NULL, *dummy = NULL;
 	struct list_head *list = NULL;
 
-	if (!(inst->output_alloc_mode & HAL_BUFFER_MODE_DYNAMIC))
+	if (inst->buffer_mode_set[CAPTURE_PORT] != HAL_BUFFER_MODE_DYNAMIC)
 		return;
 
 	/*

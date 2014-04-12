@@ -1349,9 +1349,26 @@ int msm_vdec_inst_init(struct msm_vidc_inst *inst)
 	inst->capability.width.min = MIN_SUPPORTED_WIDTH;
 	inst->capability.width.max = DEFAULT_WIDTH;
 	inst->prop.fps = 30;
-	inst->fmts[CAPTURE_PORT]->buf_type = V4L2_MPEG_VIDC_VIDEO_STATIC;
-	inst->fmts[OUTPUT_PORT]->buf_type = V4L2_MPEG_VIDC_VIDEO_STATIC;
+	inst->capability.buffer_mode[OUTPUT_PORT] = HAL_BUFFER_MODE_STATIC;
+	inst->capability.buffer_mode[CAPTURE_PORT] = HAL_BUFFER_MODE_STATIC;
+	inst->buffer_mode_set[OUTPUT_PORT] = HAL_BUFFER_MODE_STATIC;
+	inst->buffer_mode_set[CAPTURE_PORT] = HAL_BUFFER_MODE_STATIC;
 	return rc;
+}
+
+static inline enum buffer_mode_type get_buf_type(int val)
+{
+	switch (val) {
+	case V4L2_MPEG_VIDC_VIDEO_STATIC:
+		return HAL_BUFFER_MODE_STATIC;
+	case V4L2_MPEG_VIDC_VIDEO_RING:
+		return HAL_BUFFER_MODE_RING;
+	case V4L2_MPEG_VIDC_VIDEO_DYNAMIC:
+		return HAL_BUFFER_MODE_DYNAMIC;
+	default:
+		dprintk(VIDC_ERR, "%s: invalid buf type: %d", __func__, val);
+	}
+	return 0;
 }
 
 static int check_tz_dynamic_buffer_support(void)
@@ -1475,13 +1492,15 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 
 		break;
 	case V4L2_CID_MPEG_VIDC_VIDEO_ALLOC_MODE_INPUT:
-		if (ctrl->val == V4L2_MPEG_VIDC_VIDEO_DYNAMIC)
+		if (ctrl->val == V4L2_MPEG_VIDC_VIDEO_DYNAMIC) {
 			rc = -ENOTSUPP;
+			break;
+		}
 		property_id = HAL_PARAM_BUFFER_ALLOC_MODE;
-		alloc_mode.buffer_mode = ctrl->val;
+		alloc_mode.buffer_mode = get_buf_type(ctrl->val);
 		alloc_mode.buffer_type = HAL_BUFFER_INPUT;
+		inst->buffer_mode_set[OUTPUT_PORT] = alloc_mode.buffer_mode;
 		pdata = &alloc_mode;
-		inst->fmts[OUTPUT_PORT]->buf_type = alloc_mode.buffer_mode;
 		break;
 	case V4L2_CID_MPEG_VIDC_VIDEO_FRAME_ASSEMBLY:
 	{
@@ -1492,28 +1511,24 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 	}
 	case V4L2_CID_MPEG_VIDC_VIDEO_ALLOC_MODE_OUTPUT:
 		property_id = HAL_PARAM_BUFFER_ALLOC_MODE;
-		if (ctrl->val == V4L2_MPEG_VIDC_VIDEO_RING)
+		alloc_mode.buffer_mode = get_buf_type(ctrl->val);
+		if (!(alloc_mode.buffer_mode &
+			inst->capability.buffer_mode[CAPTURE_PORT])) {
+			dprintk(VIDC_DBG,
+				"buffer mode[%d] not supported for Capture Port\n",
+				ctrl->val);
 			rc = -ENOTSUPP;
-		else if (ctrl->val == V4L2_MPEG_VIDC_VIDEO_DYNAMIC &&
-			!(inst->output_alloc_mode_supported &
-			HAL_BUFFER_MODE_DYNAMIC)) {
-				dprintk(VIDC_DBG,
-					"Dynamic buffer mode not supported for Capture Port\n");
-				rc = -ENOTSUPP;
-		} else {
-			if ((inst->flags & VIDC_SECURE) &&
-				check_tz_dynamic_buffer_support()) {
-				rc = -ENOTSUPP;
-			} else {
-				alloc_mode.buffer_mode = ctrl->val;
-				alloc_mode.buffer_type = HAL_BUFFER_OUTPUT;
-				pdata = &alloc_mode;
-				inst->output_alloc_mode =
-					alloc_mode.buffer_mode;
-				inst->fmts[CAPTURE_PORT]->buf_type =
-					alloc_mode.buffer_mode;
-			}
+			break;
 		}
+		if ((alloc_mode.buffer_mode == HAL_BUFFER_MODE_DYNAMIC) &&
+			(inst->flags & VIDC_SECURE) &&
+			check_tz_dynamic_buffer_support()) {
+				rc = -ENOTSUPP;
+				break;
+		}
+		alloc_mode.buffer_type = HAL_BUFFER_OUTPUT;
+		pdata = &alloc_mode;
+		inst->buffer_mode_set[CAPTURE_PORT] = alloc_mode.buffer_mode;
 		break;
 	default:
 		break;

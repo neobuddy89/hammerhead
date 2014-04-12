@@ -602,6 +602,12 @@ enum vidc_status hfi_process_sess_init_done_prop_read(
 						|= HAL_BUFFER_MODE_DYNAMIC;
 						break;
 					}
+					if (i >= 32) {
+						dprintk(VIDC_ERR,
+						"%s - num_entries: %d from f/w seems suspect\n",
+						__func__, prop->num_entries);
+						break;
+					}
 				}
 			}
 			next_offset += sizeof(*prop) -

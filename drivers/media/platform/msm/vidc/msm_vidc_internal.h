@@ -184,6 +184,7 @@ struct msm_vidc_core_capability {
 	struct hal_capability_supported scale_x;
 	struct hal_capability_supported scale_y;
 	u32 capability_set;
+	enum buffer_mode_type buffer_mode[MAX_PORT_NUM];
 };
 
 struct msm_vidc_core {
@@ -233,8 +234,7 @@ struct msm_vidc_inst {
 	struct buf_count count;
 	enum msm_vidc_modes flags;
 	struct msm_vidc_core_capability capability;
-	u32 output_alloc_mode_supported;
-	u32 output_alloc_mode;
+	enum buffer_mode_type buffer_mode_set[MAX_PORT_NUM];
 	struct list_head registered_bufs;
 	bool map_output_buffer;
 	atomic_t get_seq_hdr_cnt;
