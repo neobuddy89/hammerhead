@@ -428,8 +428,8 @@ static inline void save_v4l2_buffer(struct v4l2_buffer *b,
 
 int map_and_register_buf(struct msm_vidc_inst *inst, struct v4l2_buffer *b)
 {
-	struct buffer_info *binfo;
-	struct buffer_info *temp;
+	struct buffer_info *binfo = NULL;
+	struct buffer_info *temp = NULL;
 	int plane = 0;
 	int i = 0, rc = 0;
 	struct msm_smem *same_fd_handle = NULL;
