@@ -1165,7 +1165,7 @@ static int unmap_cal_tables(void)
 		result = result2;
 	}
 
-	result2 = voice_unmap_cal_blocks();
+	result2 = voc_unmap_cal_blocks();
 	if (result2 < 0) {
 		pr_err("%s: voice_unmap_cal_blocks failed, err = %d\n",
 			__func__, result2);

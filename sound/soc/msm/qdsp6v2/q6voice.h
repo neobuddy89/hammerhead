@@ -147,6 +147,9 @@ struct vss_unmap_memory_cmd {
 #define VSS_IMVM_CMD_CREATE_PASSIVE_CONTROL_SESSION	0x000110FF
 /**< No payload. Wait for APRV2_IBASIC_RSP_RESULT response. */
 
+#define VSS_IMVM_CMD_PAUSE_VOICE 0x0001137D
+/* No payload. Wait for APRV2_IBASIC_RSP_RESULT response. */
+
 #define VSS_IMVM_CMD_SET_POLICY_DUAL_CONTROL	0x00011327
 /*
  * VSS_IMVM_CMD_SET_POLICY_DUAL_CONTROL
@@ -1451,7 +1454,7 @@ int voc_alloc_voip_shared_memory(void);
 int is_voc_initialized(void);
 int voc_register_vocproc_vol_table(void);
 int voc_deregister_vocproc_vol_table(void);
-int voice_unmap_cal_blocks(void);
+int voc_unmap_cal_blocks(void);
 
 int voc_map_rtac_block(struct rtac_cal_block_data *cal_block);
 int voc_unmap_rtac_block(uint32_t *mem_map_handle);

@@ -84,7 +84,7 @@ void *q6asm_mmap_apr_reg(void);
 static int q6asm_is_valid_session(struct apr_client_data *data, void *priv);
 
 /* for ASM custom topology */
-static struct audio_buffer common_buf;
+static struct audio_buffer common_buf[2];
 static struct audio_client common_client;
 static int set_custom_topology;
 static int topology_map_handle;
@@ -115,8 +115,6 @@ int q6asm_mmap_apr_dereg(void)
 	c = atomic_sub_return(1, &this_mmap.ref_cnt);
 	if (c == 0) {
 		apr_deregister(this_mmap.apr);
-		common_client.apr = 0;
-		common_client.mmap_apr = 0;
 		pr_debug("%s: APR De-Register common port\n", __func__);
 	} else if (c < 0) {
 		pr_err("%s: APR Common Port Already Closed\n", __func__);
@@ -395,6 +393,7 @@ void send_asm_custom_topology(struct audio_client *ac)
 	struct list_head		*ptr, *next;
 	int				result;
 	int				size = 4096;
+
 	get_asm_custom_topology(&cal_block);
 	if (cal_block.cal_size == 0) {
 		pr_debug("%s: no cal to send addr= 0x%x\n",
@@ -403,6 +402,16 @@ void send_asm_custom_topology(struct audio_client *ac)
 	}
 
 	if (set_custom_topology) {
+		if (common_client.mmap_apr == NULL) {
+			common_client.mmap_apr = q6asm_mmap_apr_reg();
+			common_client.apr = common_client.mmap_apr;
+			if (common_client.mmap_apr == NULL) {
+				pr_err("%s: q6asm_mmap_apr_reg failed\n",
+					__func__);
+				result = -EPERM;
+				goto done;
+			}
+		}
 		/* Only call this once */
 		set_custom_topology = 0;
 
@@ -433,6 +442,13 @@ void send_asm_custom_topology(struct audio_client *ac)
 			}
 		}
 
+		result = q6asm_mmap_apr_dereg();
+		if (result < 0) {
+			pr_err("%s: q6asm_mmap_apr_dereg failed, err %d\n",
+				__func__, result);
+		} else {
+			common_client.mmap_apr = NULL;
+		}
 	}
 
 	q6asm_add_hdr_custom_topology(ac, &asm_top.hdr,
@@ -599,28 +615,41 @@ done:
 
 int q6asm_unmap_cal_blocks(void)
 {
-	int				result = 0;
+	int	result = 0;
+	int	result2 = 0;
+	pr_debug("%s\n", __func__);
 
 	if (topology_map_handle == 0)
 		goto done;
 
-	if (q6asm_mmap_apr_reg() == NULL) {
-		pr_err("%s: q6asm_mmap_apr_reg failed, err %d\n",
-			__func__, result);
-		goto done;
+	if (common_client.mmap_apr == NULL) {
+		common_client.mmap_apr = q6asm_mmap_apr_reg();
+		if (common_client.mmap_apr == NULL) {
+			pr_err("%s: q6asm_mmap_apr_reg failed\n",
+				__func__);
+			result = -EPERM;
+			goto done;
+		}
 	}
 
-	result = q6asm_memory_unmap_regions(&common_client, IN);
-	if (result < 0)
+	result2 = q6asm_memory_unmap_regions(&common_client, IN);
+	if (result2 < 0) {
 		pr_err("%s: unmap failed, err %d\n",
-			__func__, result);
+			__func__, result2);
+		result = result2;
+	} else {
+		topology_map_handle = 0;
+	}
 
-	result = q6asm_mmap_apr_dereg();
-	if (result < 0)
+	result2 = q6asm_mmap_apr_dereg();
+	if (result2 < 0) {
 		pr_err("%s: q6asm_mmap_apr_dereg failed, err %d\n",
-			__func__, result);
+			__func__, result2);
+		result = result2;
+	} else {
+		common_client.mmap_apr = NULL;
+	}
 
-	topology_map_handle = 0;
 	set_custom_topology = 0;
 
 done:
@@ -791,8 +820,6 @@ void *q6asm_mmap_apr_reg(void)
 			 __func__);
 			goto fail;
 		}
-		common_client.apr = this_mmap.apr;
-		common_client.mmap_apr = this_mmap.apr;
 	}
 	atomic_inc(&this_mmap.ref_cnt);
 	return this_mmap.apr;
@@ -3016,7 +3043,7 @@ int q6asm_memory_map(struct audio_client *ac, uint32_t buf_add, int dir,
 	int	rc = 0;
 	int	cmd_size = 0;
 
-	if (!ac || ac->apr == NULL || ac->mmap_apr == NULL) {
+	if (!ac || ac->mmap_apr == NULL) {
 		pr_err("%s: APR handle NULL\n", __func__);
 		return -EINVAL;
 	}
@@ -3094,7 +3121,7 @@ int q6asm_memory_unmap(struct audio_client *ac, uint32_t buf_add, int dir)
 
 	int rc = 0;
 
-	if (!ac || ac->apr == NULL || this_mmap.apr == NULL) {
+	if (!ac || this_mmap.apr == NULL) {
 		pr_err("%s: APR handle NULL\n", __func__);
 		return -EINVAL;
 	}
@@ -3164,7 +3191,7 @@ static int q6asm_memory_map_regions(struct audio_client *ac, int dir,
 	uint32_t bufcnt_t;
 	uint32_t bufsz_t;
 
-	if (!ac || ac->apr == NULL || ac->mmap_apr == NULL) {
+	if (!ac || ac->mmap_apr == NULL) {
 		pr_err("%s: APR handle NULL\n", __func__);
 		return -EINVAL;
 	}
@@ -4496,11 +4523,27 @@ static int q6asm_is_valid_session(struct apr_client_data *data, void *priv)
 
 static int __init q6asm_init(void)
 {
+	int lcnt;
 	pr_debug("%s\n", __func__);
 	memset(session, 0, sizeof(session));
 	set_custom_topology = 1;
 
-	common_client.port[0].buf = &common_buf;
+	/*setup common client used for cal mem map */
+	common_client.session = ASM_CONTROL_SESSION;
+	common_client.port[0].buf = &common_buf[0];
+	common_client.port[1].buf = &common_buf[1];
+	init_waitqueue_head(&common_client.cmd_wait);
+	init_waitqueue_head(&common_client.time_wait);
+	atomic_set(&common_client.time_flag, 1);
+	INIT_LIST_HEAD(&common_client.port[0].mem_map_handle);
+	INIT_LIST_HEAD(&common_client.port[1].mem_map_handle);
+	mutex_init(&common_client.cmd_lock);
+	for (lcnt = 0; lcnt <= OUT; lcnt++) {
+		mutex_init(&common_client.port[lcnt].lock);
+		spin_lock_init(&common_client.port[lcnt].dsp_lock);
+	}
+	atomic_set(&common_client.cmd_state, 0);
+	atomic_set(&common_client.nowait_cmd_cnt, 0);
 
 	config_debug_fs_init();
 

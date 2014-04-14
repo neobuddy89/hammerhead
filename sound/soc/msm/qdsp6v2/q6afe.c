@@ -186,16 +186,13 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 			pr_debug("%s: mmap_handle: 0x%x, cal index %d\n",
 				 __func__, payload[0],
 				 atomic_read(&this_afe.mem_map_cal_index));
-			if (atomic_read(&this_afe.mem_map_cal_index) != -1) {
+			if (atomic_read(&this_afe.mem_map_cal_index) != -1)
 				atomic_set(&this_afe.mem_map_cal_handles[
 					atomic_read(
 					&this_afe.mem_map_cal_index)],
 					(uint32_t)payload[0]);
-			} else {
+			else
 				this_afe.mmap_handle = (uint32_t)payload[0];
-				pr_debug("%s: mmap handle 0x%x\n",
-					__func__, this_afe.mmap_handle);
-			}
 			atomic_set(&this_afe.state, 0);
 			wake_up(&this_afe.wait[data->token]);
 		} else if (data->opcode == AFE_EVENT_RT_PROXY_PORT_STATUS) {
@@ -476,23 +473,28 @@ done:
 
 int afe_unmap_cal_blocks(void)
 {
-	int				i;
-	int				result = 0;
+	int	i;
+	int	result = 0;
+	int	result2 = 0;
 
 	for (i = 0; i < MAX_AFE_CAL_TYPES; i++) {
 		if (atomic_read(&this_afe.mem_map_cal_handles[i]) != 0) {
 
 			atomic_set(&this_afe.mem_map_cal_index, i);
-			result = afe_cmd_memory_unmap(atomic_read(
+			result2 = afe_cmd_memory_unmap(atomic_read(
 				&this_afe.mem_map_cal_handles[i]));
-			if (result < 0)
+			if (result2 < 0) {
 				pr_err("%s: unmap failed, err %d\n",
-					__func__, result);
+					__func__, result2);
+				result = result2;
+			} else {
+				atomic_set(&this_afe.mem_map_cal_handles[i],
+					0);
+			}
 			atomic_set(&this_afe.mem_map_cal_index, -1);
 
 			this_afe.afe_cal_addr[i].cal_paddr = 0;
 			this_afe.afe_cal_addr[i].cal_size = 0;
-			atomic_set(&this_afe.mem_map_cal_handles[i], 0);
 		}
 	}
 	return result;
@@ -2108,6 +2110,7 @@ int afe_cmd_memory_map(u32 dma_addr_p, u32 dma_buf_sz)
 		goto fail_cmd;
 	}
 
+	pr_debug("%s: mmap handle 0x%x\n", __func__, this_afe.mmap_handle);
 	kfree(mmap_region_cmd);
 	return 0;
 fail_cmd:

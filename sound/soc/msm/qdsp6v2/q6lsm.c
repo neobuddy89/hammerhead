@@ -175,8 +175,6 @@ static void *q6lsm_mmap_apr_reg(void)
 				 __func__);
 			atomic_dec(&lsm_common.apr_users);
 		}
-		lsm_common.common_client.apr = lsm_common.apr;
-		lsm_common.common_client.mmap_apr = lsm_common.apr;
 	}
 
 	return lsm_common.apr;
@@ -189,8 +187,6 @@ static int q6lsm_mmap_apr_dereg(void)
 	} else {
 		if (atomic_dec_return(&lsm_common.apr_users) == 0) {
 			apr_deregister(lsm_common.apr);
-			lsm_common.common_client.apr = NULL;
-			lsm_common.common_client.mmap_apr = NULL;
 			pr_debug("%s:APR De-Register common port\n", __func__);
 		}
 	}
@@ -275,7 +271,7 @@ static int q6lsm_apr_send_pkt(struct lsm_client *client, void *handle,
 		mmap_handle_p = mmap_p;
 	}
 	atomic_set(&client->cmd_state, CMD_STATE_WAIT_RESP);
-	ret = apr_send_pkt(client->apr, data);
+	ret = apr_send_pkt(handle, data);
 	if (mmap_p)
 		spin_unlock_irqrestore(&mmap_lock, flags);
 
@@ -604,6 +600,7 @@ static int q6lsm_send_cal(struct lsm_client *client)
 		}
 		lsm_common.lsm_cal_addr = lsm_cal.cal_paddr;
 		lsm_common.lsm_cal_size = LSM_CAL_SIZE;
+		lsm_common.common_client.session = client->session;
 	}
 
 	q6lsm_add_hdr(client, &params.hdr, sizeof(params), true);
@@ -625,23 +622,44 @@ bail:
 
 int q6lsm_unmap_cal_blocks(void)
 {
-	int				result = 0;
+	int	result = 0;
+	int	result2 = 0;
 
 	if (lsm_common.mmap_handle_for_cal == 0)
 		goto done;
 
-	q6lsm_mmap_apr_reg();
-	result = q6lsm_memory_unmap_regions(
+	if (lsm_common.common_client.mmap_apr == NULL) {
+		lsm_common.common_client.mmap_apr = q6lsm_mmap_apr_reg();
+		if (lsm_common.common_client.mmap_apr == NULL) {
+			pr_err("%s: q6lsm_mmap_apr_reg failed\n",
+				__func__);
+			result = -EPERM;
+			goto done;
+		}
+	}
+
+	result2 = q6lsm_memory_unmap_regions(
 		&lsm_common.common_client,
 		lsm_common.mmap_handle_for_cal);
-	q6lsm_mmap_apr_dereg();
-	if (result < 0)
+	if (result2 < 0) {
 		pr_err("%s: unmap failed, err %d\n",
-			__func__, result);
+			__func__, result2);
+		result = result2;
+	} else {
+		lsm_common.mmap_handle_for_cal = 0;
+	}
+
+	result2 = q6lsm_mmap_apr_dereg();
+	if (result2 < 0) {
+		pr_err("%s: q6lsm_mmap_apr_dereg failed, err %d\n",
+			__func__, result2);
+		result = result2;
+	} else {
+		lsm_common.common_client.mmap_apr = NULL;
+	}
 
 	lsm_common.lsm_cal_addr = 0;
 	lsm_common.lsm_cal_size = 0;
-	lsm_common.mmap_handle_for_cal = 0;
 
 done:
 	return result;
@@ -868,7 +886,12 @@ static int __init q6lsm_init(void)
 	spin_lock_init(&lsm_session_lock);
 	spin_lock_init(&mmap_lock);
 	mutex_init(&lsm_common.apr_lock);
+	
 	lsm_common.common_client.session = LSM_CONTROL_SESSION;
+	init_waitqueue_head(&lsm_common.common_client.cmd_wait);
+	mutex_init(&lsm_common.common_client.cmd_lock);
+	atomic_set(&lsm_common.common_client.cmd_state, CMD_STATE_CLEARED);
+
 	return 0;
 }
 
