@@ -10,6 +10,7 @@
  */
 #include <linux/linkage.h>
 
+	.arch	armv7-a
 #ifdef CONFIG_KEXEC_HARDBOOT
   #include <asm/kexec.h>
   #include <asm/memory.h>
