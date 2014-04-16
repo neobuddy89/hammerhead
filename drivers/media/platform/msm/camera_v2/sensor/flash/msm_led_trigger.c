@@ -45,12 +45,12 @@ static int32_t msm_led_trigger_config(struct msm_led_flash_ctrl_t *fctrl,
 	void *data)
 {
 	int rc = 0;
-	uint32_t i = 0;
 	struct msm_camera_led_cfg_t *cfg = (struct msm_camera_led_cfg_t *)data;
+	uint32_t i;
 	CDBG("called led_state %d\n", cfg->cfgtype);
 
 	if (!fctrl) {
-		pr_err("failed: fctrl %p\n", fctrl);
+		pr_err("failed\n");
 		return -EINVAL;
 	}
 
@@ -115,6 +115,7 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 	int32_t rc = 0, i = 0;
 	struct device_node *of_node = pdev->dev.of_node;
 	struct device_node *flash_src_node = NULL;
+	uint32_t count = 0;
 
 	CDBG("called\n");
 
@@ -124,6 +125,7 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 	}
 
 	fctrl.pdev = pdev;
+	fctrl.num_sources = 0;
 
 	rc = of_property_read_u32(of_node, "cell-index", &pdev->id);
 	if (rc < 0) {
@@ -132,14 +134,15 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 	}
 	CDBG("pdev id %d\n", pdev->id);
 
-	if (of_get_property(of_node, "qcom,flash-source", &fctrl.num_sources)) {
-		fctrl.num_sources /= sizeof(uint32_t);
-		CDBG("count %d\n", fctrl.num_sources);
-		if (fctrl.num_sources > MAX_LED_TRIGGERS) {
+	if (of_get_property(of_node, "qcom,flash-source", &count)) {
+		count /= sizeof(uint32_t);
+		CDBG("count %d\n", count);
+		if (count > MAX_LED_TRIGGERS) {
 			pr_err("failed\n");
 			return -EINVAL;
 		}
-		for (i = 0; i < fctrl.num_sources; i++) {
+		fctrl.num_sources = count;
+		for (i = 0; i < count; i++) {
 			flash_src_node = of_parse_phandle(of_node,
 				"qcom,flash-source", i);
 			if (!flash_src_node) {
@@ -169,12 +172,13 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 
 			of_node_put(flash_src_node);
 
-			CDBG("max_current[%d] %d\n", i,
-				fctrl.flash_op_current[i]);
+			CDBG("max_current[%d] %d\n",
+				i, fctrl.flash_op_current[i]);
 
 			led_trigger_register_simple(fctrl.flash_trigger_name[i],
 				&fctrl.flash_trigger[i]);
 		}
+
 		/* Torch source */
 		flash_src_node = of_parse_phandle(of_node, "qcom,torch-source",
 			0);
@@ -202,7 +206,6 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 						&fctrl.torch_trigger);
 				}
 			}
-
 			of_node_put(flash_src_node);
 		}
 	}
