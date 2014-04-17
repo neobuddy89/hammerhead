@@ -34,7 +34,7 @@ echo "0" > $TMPFILE;
 	XML2CHECK="${INITRAMFS_SOURCE}/res/customconfig/customconfig.xml";
 	xmllint --noout $XML2CHECK;
 	if [ $? == 1 ]; then
-        	echo "${bldred} xml-Error: $XML2CHECK ${txtrst}";
+        	echo "${bldred} WARNING for NXTweaks XML: $XML2CHECK ${txtrst}";
 	fi;
 
 	# remove previous initramfs files
@@ -73,23 +73,20 @@ if [ ! -f $KERNELDIR/.config ]; then
 	make $KERNEL_CONFIG;
 else
 	echo "${bldcya}***** Dirty Build Initiating *****${txtrst}";	
+	# remove previous files which should regenerate
+	rm -f $KERNELDIR/arch/arm/boot/*.dtb >> /dev/null;
+	rm -f $KERNELDIR/arch/arm/boot/*.cmd >> /dev/null;
+	rm -f $KERNELDIR/arch/arm/boot/zImage >> /dev/null;
+	rm -f $KERNELDIR/arch/arm/boot/zImage-dtb >> /dev/null;
+	rm -f $KERNELDIR/arch/arm/boot/Image >> /dev/null;
+	rm -f $KERNELDIR/zImage >> /dev/null;
+	rm -f $KERNELDIR/boot.img >> /dev/null;
+	rm -rf $KERNELDIR/out/temp >> /dev/null;
 fi;
 
 . $KERNELDIR/.config
 GETVER=`grep 'Chaos-Kernel_v.*' $KERNELDIR/.config | sed 's/.*_.//g' | sed 's/".*//g'`
 echo "${bldcya}Building => Chaos Kernel ${GETVER} ${txtrst}";
-
-# remove previous zImage files
-if [ -e $KERNELDIR/zImage ]; then
-	rm $KERNELDIR/zImage;
-	rm $KERNELDIR/boot.img;
-fi;
-if [ -e $KERNELDIR/arch/arm/boot/zImage ]; then
-	rm $KERNELDIR/arch/arm/boot/zImage;
-fi;
-
-# remove previous initramfs files
-rm -rf $KERNELDIR/out/temp >> /dev/null;
 
 # wait for the successful ramdisk generation
 while [ $(cat ${TMPFILE}) == 0 ]; do
@@ -108,7 +105,6 @@ fi;
 if [ -e $KERNELDIR/arch/arm/boot/zImage ]; then
 	echo "${bldcya}***** Final Touch for Kernel *****${txtrst}"
 	cp $KERNELDIR/arch/arm/boot/zImage $KERNELDIR/zImage;
-	stat $KERNELDIR/zImage || exit 1;
 	./utilities/dtbTool -v -s 2048 -o dt.img -p scripts/dtc/ arch/arm/boot/
 	
 	echo "--- Creating boot.img ---"
@@ -149,4 +145,3 @@ if [ -e $KERNELDIR/arch/arm/boot/zImage ]; then
 else
 	echo "${bldred}Kernel STUCK in BUILD!${txtrst}"
 fi;
-

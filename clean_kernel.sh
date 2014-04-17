@@ -6,9 +6,14 @@ echo "***** Setting up Environment *****";
 
 echo "${bldcya}***** Cleaning in Progress *****${txtrst}";
 
+# clean up kernel compiled binaries
 make mrproper;
 make clean;
+
+# clean up generated files
 rm -rf $INITRAMFS_TMP;
+rm -f $KERNELDIR/arch/arm/boot/*.dtb
+rm -f $KERNELDIR/arch/arm/boot/*.cmd
 rm -f $KERNELDIR/arch/arm/boot/zImage-dtb;
 rm -f $KERNELDIR/r*.cpio;
 rm -f $KERNELDIR/ramdisk.gz;
@@ -24,6 +29,7 @@ rm -rf $KERNELDIR/out/tmp_modules;
 rm -f $KERNELDIR/out/Chaos-Kernel_*;
 rm -rf $KERNELDIR/tmp;
 
+# clean up leftover junk
 find . -type f \( -iname \*.rej \
 				-o -iname \*.orig \
 				-o -iname \*.bkp \
