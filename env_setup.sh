@@ -20,7 +20,7 @@ else
 fi;
 
 export PARENT_DIR=`readlink -f ${KERNELDIR}/..`;
-export INITRAMFS_SOURCE=`readlink -f ${KERNELDIR}/../hammerhead_initramfs_cm`;
+export INITRAMFS_SOURCE=`readlink -f ${KERNELDIR}/../hammerhead_initramfs_caf`;
 export INITRAMFS_TMP=${KERNELDIR}/tmp/initramfs_source;
 
 # check if parallel installed, if not install
