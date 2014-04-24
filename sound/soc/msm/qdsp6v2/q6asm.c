@@ -1170,7 +1170,7 @@ static int32_t q6asm_srvc_callback(struct apr_client_data *data, void *priv)
 		case ASM_CMD_ADD_TOPOLOGIES:
 			if (payload[1] != 0) {
 				pr_err("%s: cmd = 0x%x returned error = 0x%x sid:%d\n",
-				__func__, payload[0], payload[1], sid);
+					__func__, payload[0], payload[1], sid);
 			}
 
 			if (atomic_read(&ac->cmd_state)) {
@@ -1664,7 +1664,7 @@ static void __q6asm_add_hdr_async(struct audio_client *ac, struct apr_hdr *hdr,
 				APR_HDR_LEN(sizeof(struct apr_hdr)),\
 				APR_PKT_VER);
 	if (ac->apr == NULL) {
-		pr_err("%s: error ac->apr is NULL", __func__);
+		pr_err("%s: ac->apr is NULL", __func__);
 		return;
 	}
 	hdr->src_svc = ((struct apr_svc *)ac->apr)->id;
@@ -3353,7 +3353,7 @@ static int q6asm_memory_unmap_regions(struct audio_client *ac, int dir)
 	int	rc = 0;
 	int	cmd_size = 0;
 
-	if (!ac || ac->apr == NULL || ac->mmap_apr == NULL) {
+	if (!ac || ac->mmap_apr == NULL) {
 		pr_err("%s: APR handle NULL\n", __func__);
 		return -EINVAL;
 	}
@@ -3412,8 +3412,8 @@ int q6asm_set_lrgain(struct audio_client *ac, int left_gain, int right_gain)
 	int sz = 0;
 	int rc  = 0;
 
-	if (ac == NULL) {
-		pr_err("%s: ac is NULL\n", __func__);
+	if (!ac || ac->apr == NULL) {
+		pr_err("%s: APR handle NULL\n", __func__);
 		rc = -EINVAL;
 		goto fail_cmd;
 	}
@@ -3461,6 +3461,12 @@ int q6asm_set_mute(struct audio_client *ac, int muteflag)
 	int sz = 0;
 	int rc  = 0;
 
+	if (!ac || ac->apr == NULL) {
+		pr_err("%s: APR handle NULL\n", __func__);
+		rc = -EINVAL;
+		goto fail_cmd;
+	}
+
 	sz = sizeof(struct asm_volume_ctrl_mute_config);
 	q6asm_add_hdr_async(ac, &mute.hdr, sz, TRUE);
 	atomic_set(&ac->cmd_state, 1);
@@ -3503,8 +3509,8 @@ int q6asm_set_volume(struct audio_client *ac, int volume)
 	int sz = 0;
 	int rc  = 0;
 
-	if (ac == NULL) {
-		pr_err("%s: ac is NULL\n", __func__);
+	if (!ac || ac->apr == NULL) {
+		pr_err("%s: APR handle NULL\n", __func__);
 		rc = -EINVAL;
 		goto fail_cmd;
 	}
@@ -3551,6 +3557,12 @@ int q6asm_set_softpause(struct audio_client *ac,
 	struct asm_soft_pause_params softpause;
 	int sz = 0;
 	int rc  = 0;
+
+	if (!ac || ac->apr == NULL) {
+		pr_err("%s: APR handle NULL\n", __func__);
+		rc = -EINVAL;
+		goto fail_cmd;
+	}
 
 	sz = sizeof(struct asm_soft_pause_params);
 	q6asm_add_hdr_async(ac, &softpause.hdr, sz, TRUE);
@@ -3600,6 +3612,12 @@ int q6asm_set_softvolume(struct audio_client *ac,
 	int sz = 0;
 	int rc  = 0;
 
+	if (!ac || ac->apr == NULL) {
+		pr_err("%s: APR handle NULL\n", __func__);
+		rc = -EINVAL;
+		goto fail_cmd;
+	}
+
 	sz = sizeof(struct asm_soft_step_volume_params);
 	q6asm_add_hdr_async(ac, &softvol.hdr, sz, TRUE);
 	atomic_set(&ac->cmd_state, 1);
@@ -3646,6 +3664,12 @@ int q6asm_equalizer(struct audio_client *ac, void *eq_p)
 	int i  = 0;
 	int sz = 0;
 	int rc  = 0;
+
+	if (!ac || ac->apr == NULL) {
+		pr_err("%s: APR handle NULL\n", __func__);
+		rc = -EINVAL;
+		goto fail_cmd;
+	}
 
 	if (eq_p == NULL) {
 		pr_err("%s[%d]: Invalid Eq param\n", __func__, ac->session);
@@ -4577,6 +4601,7 @@ static int __init q6asm_init(void)
 {
 	int lcnt;
 	pr_debug("%s\n", __func__);
+
 	memset(session, 0, sizeof(session));
 	set_custom_topology = 1;
 
