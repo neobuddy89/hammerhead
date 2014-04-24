@@ -738,7 +738,8 @@ done:
 	return;
 }
 
-static int send_adm_cal_block(int port_id, struct acdb_cal_block *aud_cal, int perf_mode)
+static int send_adm_cal_block(int port_id, struct acdb_cal_block *aud_cal,
+			      int perf_mode)
 {
 	s32				result = 0;
 	struct adm_cmd_set_pp_params_v5	adm_params;
@@ -838,7 +839,7 @@ static void send_adm_cal(int port_id, int path, int perf_mode)
 		if (this_adm.mem_addr_audproc[acdb_path].cal_paddr != 0)
 			adm_memory_unmap_regions(port_id);
 
- 		result = adm_memory_map_regions(port_id, &aud_cal.cal_paddr,
+		result = adm_memory_map_regions(port_id, &aud_cal.cal_paddr,
 						0, &size, 1);
 		if (result < 0) {
 			pr_err("ADM audproc mmap did not work! path = %d, addr = 0x%x, size = %d\n",
@@ -1000,6 +1001,8 @@ int adm_unmap_cal_blocks(void)
 					= 0;
 			} else if (i == ADM_CUSTOM_TOP_CAL) {
 				this_adm.set_custom_topology = 1;
+			} else {
+				continue;
 			}
 
 			/* valid port ID needed for callback use primary I2S */
@@ -1370,7 +1373,7 @@ int adm_matrix_map(int session_id, int path, int num_copps,
 		else
 			continue;
 		pr_debug("%s: port_id[%#x]: %d, index: %d act coppid[0x%x]\n",
-			__func__, i, port_id[i], tmp, copps_list[i] );
+			__func__, i, port_id[i], tmp, copps_list[i]);
 	}
 	atomic_set(&this_adm.copp_stat[index], 0);
 
@@ -1569,6 +1572,7 @@ fail_cmd:
 #ifdef CONFIG_RTAC
 int adm_get_copp_id(int port_index)
 {
+	int copp_id;
 	pr_debug("%s\n", __func__);
 
 	if (port_index < 0) {
@@ -1576,7 +1580,11 @@ int adm_get_copp_id(int port_index)
 		return -EINVAL;
 	}
 
-	return atomic_read(&this_adm.copp_id[port_index]);
+	copp_id = atomic_read(&this_adm.copp_id[port_index]);
+	if (copp_id == RESET_COPP_ID)
+		copp_id = atomic_read(
+			&this_adm.copp_low_latency_id[port_index]);
+	return copp_id;
 }
 
 int adm_get_lowlatency_copp_id(int port_index)
@@ -1589,6 +1597,16 @@ int adm_get_lowlatency_copp_id(int port_index)
 	}
 
 	return atomic_read(&this_adm.copp_low_latency_id[port_index]);
+}
+#else
+int adm_get_copp_id(int port_index)
+{
+	return -EINVAL;
+}
+
+int adm_get_lowlatency_copp_id(int port_index)
+{
+	return -EINVAL;
 }
 #endif //#ifdef CONFIG_RTAC
 
@@ -1665,7 +1683,8 @@ int adm_close(int port_id, int perf_mode)
 				__func__,
 				copp_id,
 				port_id, index,
-				atomic_read(&this_adm.copp_low_latency_cnt[index]));
+				atomic_read(
+					&this_adm.copp_low_latency_cnt[index]));
 			atomic_set(&this_adm.copp_low_latency_id[index],
 				RESET_COPP_ID);
 		} else {
