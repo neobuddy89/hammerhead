@@ -89,8 +89,6 @@
 		qcom,model = "msm8974-taiko-mtp-snd-card";
 		qcom,mbhc-gpio-level-insert = <0>;
 
-		qcom,mbhc-disabled = <1>;
-
 		qcom,hdmi-audio-rx;
 
 		qcom,us-euro-gpios = <&pm8941_gpios 20 0>;
