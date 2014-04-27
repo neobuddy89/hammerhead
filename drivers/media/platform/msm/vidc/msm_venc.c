@@ -2328,6 +2328,8 @@ int msm_venc_inst_init(struct msm_vidc_inst *inst)
 	inst->prop.fps = 15;
 	inst->fmts[CAPTURE_PORT]->buf_type = V4L2_MPEG_VIDC_VIDEO_STATIC;
 	inst->fmts[OUTPUT_PORT]->buf_type = V4L2_MPEG_VIDC_VIDEO_STATIC;
+	inst->buffer_mode_set[OUTPUT_PORT] = HAL_BUFFER_MODE_STATIC;
+	inst->buffer_mode_set[CAPTURE_PORT] = HAL_BUFFER_MODE_STATIC;
 	inst->capability.pixelprocess_capabilities = 0;
 	return rc;
 }
