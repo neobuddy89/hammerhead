@@ -34,7 +34,6 @@
 #include "../codecs/wcd9xxx-common.h"
 #include "../codecs/wcd9320.h"
 #include <linux/io.h>
-#include <linux/of.h>
 
 #define DRV_NAME "msm8974-asoc-taiko"
 
@@ -85,13 +84,6 @@ static int msm8974_auxpcm_rate = 8000;
 #define EXT_CLASS_AB_DELAY_DELTA 1000
 
 #define NUM_OF_AUXPCM_GPIOS 4
-
-static int mbhc_disabled = 0;
-
-int is_mbhc_disabled(void)
-{
-	return mbhc_disabled;
-}
 
 static void *adsp_state_notifier;
 
@@ -2770,16 +2762,6 @@ static __devinit int msm8974_asoc_machine_probe(struct platform_device *pdev)
 			ret);
 		goto err1;
 	}
-
-	/* check if mbhc is used or not */
-	ret = of_property_read_u32(pdev->dev.of_node, "qcom,mbhc-disabled", &mbhc_disabled);
-	if (ret) {
-		dev_err(&pdev->dev, "Looking up %s property failed..set mbhc_disabled\n",
-			"qcom,mbhc-disabled");
-		mbhc_disabled = 0;
-	}
-
-	dev_info(&pdev->dev,"%s() MBHC disabled = %d\n", __func__, mbhc_disabled);
 
 	ret = of_property_read_string(pdev->dev.of_node,
 			"qcom,prim-auxpcm-gpio-set", &auxpcm_pri_gpio_set);
