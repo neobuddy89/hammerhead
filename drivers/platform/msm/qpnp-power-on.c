@@ -83,7 +83,6 @@
 #ifdef CONFIG_PWRKEY_SUSPEND
 bool pwrkey_pressed = false;
 bool pwrkey_suspend = false;
-static int cnt = 0;
 module_param(pwrkey_suspend, bool, 0755);
 #endif
 
@@ -375,12 +374,13 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 	
 #ifdef CONFIG_PWRKEY_SUSPEND
 	if (pwrkey_suspend) {
-		if (cfg->key_code == KEY_POWER && cnt == 0) {
+		if (cfg->key_code == KEY_POWER) {
 			pwrkey_pressed = true;
-			cnt++;
 		} else {
-			cnt = 0;
+			pwrkey_pressed = false;
 		}
+	} else {
+		pwrkey_pressed = false;
 	}
 #endif			
 	
