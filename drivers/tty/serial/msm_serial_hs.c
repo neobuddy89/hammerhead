@@ -155,7 +155,6 @@ struct msm_hs_rx {
 	struct tasklet_struct tlet;
 	struct msm_hs_sps_ep_conn_data prod;
 };
-
 enum buffer_states {
 	NONE_PENDING = 0x0,
 	FIFO_OVERRUN = 0x1,
@@ -3065,7 +3064,11 @@ static int __devinit msm_hs_probe(struct platform_device *pdev)
 					IORESOURCE_MEM, "bam_mem");
 		core_irqres = platform_get_irq_byname(pdev, "core_irq");
 		bam_irqres = platform_get_irq_byname(pdev, "bam_irq");
+#if 0  //                                                       
 		wakeup_irqres = platform_get_irq_byname(pdev, "wakeup_irq");
+#else
+		wakeup_irqres = 0;
+#endif
 
 		if (!core_resource) {
 			pr_err("Invalid core HSUART Resources.\n");
