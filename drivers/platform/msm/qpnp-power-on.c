@@ -373,15 +373,10 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 	}
 	
 #ifdef CONFIG_PWRKEY_SUSPEND
-	if (pwrkey_suspend) {
-		if (cfg->key_code == KEY_POWER) {
-			pwrkey_pressed = true;
-		} else {
-			pwrkey_pressed = false;
-		}
-	} else {
+	if (pwrkey_suspend && cfg->key_code == KEY_POWER)
+		pwrkey_pressed = true;
+	else
 		pwrkey_pressed = false;
-	}
 #endif			
 	
 	input_report_key(pon->pon_input, cfg->key_code,
