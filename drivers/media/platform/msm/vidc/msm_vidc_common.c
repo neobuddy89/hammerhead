@@ -1079,7 +1079,7 @@ int buf_ref_get(struct msm_vidc_inst *inst, struct buffer_info *binfo)
 	atomic_inc(&binfo->ref_count);
 	cnt = atomic_read(&binfo->ref_count);
 	if (cnt > 2) {
-		dprintk(VIDC_ERR, "%s: invalid ref_cnt: %d\n", __func__, cnt);
+		dprintk(VIDC_DBG, "%s: invalid ref_cnt: %d\n", __func__, cnt);
 		cnt = -EINVAL;
 	}
 	dprintk(VIDC_DBG, "REF_GET[%d] fd[0] = %d\n", cnt, binfo->fd[0]);
@@ -1106,7 +1106,7 @@ int buf_ref_put(struct msm_vidc_inst *inst, struct buffer_info *binfo)
 	else if (cnt == 1)
 		qbuf_again = true;
 	else {
-		dprintk(VIDC_ERR, "%s: invalid ref_cnt: %d\n", __func__, cnt);
+		dprintk(VIDC_DBG, "%s: invalid ref_cnt: %d\n", __func__, cnt);
 		cnt = -EINVAL;
 	}
 	mutex_unlock(&inst->lock);
@@ -3121,7 +3121,6 @@ int msm_comm_flush(struct msm_vidc_inst *inst, u32 flags)
 	struct mutex *lock;
 	struct msm_vidc_core *core;
 	struct hfi_device *hdev;
-
 	if (!inst) {
 		dprintk(VIDC_ERR,
 				"Invalid instance pointer = %p\n", inst);
