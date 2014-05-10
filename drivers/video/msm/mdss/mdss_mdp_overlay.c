@@ -1067,12 +1067,6 @@ int mdss_mdp_overlay_start(struct msm_fb_data_type *mfd)
 
 	pr_debug("starting fb%d overlay\n", mfd->index);
 
-	rc = pm_runtime_get_sync(&mfd->pdev->dev);
-	if (IS_ERR_VALUE(rc)) {
-		pr_err("unable to resume with pm_runtime_get_sync rc=%d\n", rc);
-		goto end;
-	}
-
 	/*
 	 * We need to do hw init before any hw programming.
 	 * Also, hw init involves programming the VBIF registers which
@@ -2891,24 +2885,37 @@ static int mdss_mdp_overlay_on(struct msm_fb_data_type *mfd)
 		mdp5_data->ctl = ctl;
 	}
 
+	rc = pm_runtime_get_sync(&mfd->pdev->dev);
+	if (IS_ERR_VALUE(rc)) {
+		pr_err("unable to resume with pm_runtime_get_sync rc=%d\n", rc);
+		goto end;
+	}
+
 	if (!mfd->panel_info->cont_splash_enabled &&
 		(mfd->panel_info->type != DTV_PANEL)) {
 		rc = mdss_mdp_overlay_start(mfd);
-		if (!IS_ERR_VALUE(rc) &&
-			(mfd->panel_info->type != WRITEBACK_PANEL)) {
+		if (rc)
+			goto error_pm;
+		if (mfd->panel_info->type != WRITEBACK_PANEL) {
 			atomic_inc(&mfd->mdp_sync_pt_data.commit_cnt);
 			rc = mdss_mdp_overlay_kickoff(mfd, NULL);
 		}
 	} else {
 		rc = mdss_mdp_ctl_setup(mdp5_data->ctl);
 		if (rc)
-			return rc;
+			goto error_pm;
 	}
 
 	if (IS_ERR_VALUE(rc)) {
 		pr_err("Failed to turn on fb%d\n", mfd->index);
 		mdss_mdp_overlay_off(mfd);
+		goto end;
 	}
+
+error_pm:
+	if (rc)
+		pm_runtime_put_sync(&mfd->pdev->dev);
+end:
 	return rc;
 }
 
@@ -2935,6 +2942,16 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 	if (!mdp5_data->ctl->power_on)
 		return 0;
 
+	if (mdp5_data->mdata->ulps) {
+		rc = mdss_mdp_footswitch_ctrl_ulps(1, &mfd->pdev->dev);
+		if (rc) {
+			pr_err("footswitch control power on failed rc=%d\n",
+									rc);
+			return rc;
+		}
+		mdss_mdp_ctl_restore(mdp5_data->ctl);
+	}
+
 	mdss_mdp_overlay_free_fb_pipe(mfd);
 
 	mixer = mdss_mdp_mixer_get(mdp5_data->ctl, MDSS_MDP_MIXER_MUX_LEFT);
@@ -2948,16 +2965,6 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 	mutex_lock(&mdp5_data->list_lock);
 	need_cleanup = !list_empty(&mdp5_data->pipes_cleanup);
 	mutex_unlock(&mdp5_data->list_lock);
-
-	if (mdp5_data->mdata->ulps) {
-		rc = mdss_mdp_footswitch_ctrl_ulps(1, &mfd->pdev->dev);
-		if (rc) {
-			pr_err("footswitch control power on failed rc=%d\n",
-									rc);
-			return rc;
-		}
-		mdss_mdp_ctl_restore(mdp5_data->ctl);
-	}
 
 	if (need_cleanup) {
 		pr_debug("cleaning up pipes on fb%d\n", mfd->index);
