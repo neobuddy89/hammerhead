@@ -376,10 +376,9 @@ static int bq24192_set_input_i_limit(struct bq24192_chip *chip, int ma)
 		}
 
 	}
-	temp = icl_ma_table[i].value;
-#else
-	temp = icl_ma_table[i].value;
 #endif
+
+	temp = icl_ma_table[i].value;
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
 	if (custom_ma > chip->max_input_i_ma) {
