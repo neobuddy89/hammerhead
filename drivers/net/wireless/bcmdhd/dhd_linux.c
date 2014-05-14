@@ -43,6 +43,7 @@
 #include <linux/fcntl.h>
 #include <linux/fs.h>
 #include <linux/ip.h>
+#include <linux/sched/rt.h>
 #include <net/addrconf.h>
 
 #include <asm/uaccess.h>
