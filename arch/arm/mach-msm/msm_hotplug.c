@@ -20,6 +20,7 @@
 #include <linux/device.h>
 #include <linux/slab.h>
 #include <linux/cpufreq.h>
+#include <linux/lcd_notify.h>
 #include <linux/input.h>
 #include <linux/math64.h>
 #include <linux/kernel_stat.h>
@@ -62,6 +63,7 @@ static struct cpu_hotplug {
 	struct work_struct down_work;
 	struct work_struct suspend_work;
 	struct work_struct resume_work;
+	struct notifier_block notif;
 } hotplug = {
 	.msm_enabled = HOTPLUG_ENABLED,
 	.min_cpus_online = DEFAULT_MIN_CPUS_ONLINE,
@@ -467,6 +469,15 @@ static void msm_hotplug_resume_work(struct work_struct *work)
 	online_cpu(stats.total_cpus);
 }
 
+static int lcd_notifier_callback(struct notifier_block *nb,
+                                 unsigned long event, void *data)
+{
+        if (event == LCD_EVENT_ON_START)
+		schedule_work(&hotplug.resume_work);
+
+        return 0;
+}
+
 static void hotplug_input_event(struct input_handle *handle, unsigned int type,
 				unsigned int code, int value)
 {
@@ -695,24 +706,14 @@ static ssize_t store_history_size(struct device *dev,
 	unsigned int val;
 
 	ret = sscanf(buf, "%u", &val);
-	if (ret != 1 || val <= 0)
+	if (ret != 1 || val < 1 || val > 20)
 		return -EINVAL;
 
 	flush_workqueue(hotplug_wq);
 	cancel_delayed_work_sync(&hotplug_work);
 
-	mutex_lock(&stats.stats_mutex);
-	if (stats.hist_size > 1)
-		kfree(stats.load_hist);
-
+	memset(stats.load_hist, 0, sizeof(stats.load_hist));
 	stats.hist_size = val;
-
-	if (stats.hist_size > 1) {
-		stats.load_hist = kmalloc(sizeof(stats.hist_size), GFP_KERNEL);
-		if (!stats.load_hist)
-			return -ENOMEM;
-	}
-	mutex_unlock(&stats.stats_mutex);
 
 	reschedule_hotplug_work();
 
@@ -911,6 +912,13 @@ static int __devinit msm_hotplug_probe(struct platform_device *pdev)
 	ret = sysfs_create_group(module_kobj, &attr_group);
 	if (ret) {
 		pr_err("%s: Failed to create sysfs: %d\n", MSM_HOTPLUG, ret);
+		goto err_dev;
+	}
+
+	hotplug.notif.notifier_call = lcd_notifier_callback;
+        if (lcd_register_client(&hotplug.notif) != 0) {
+                pr_err("%s: Failed to register LCD notifier callback\n",
+                       MSM_HOTPLUG);
 		goto err_dev;
 	}
 
