@@ -116,8 +116,8 @@ config ARM_EXYNOS4_BUS_DEVFREQ
 	  To operate with optimal voltages, ASV support is required
 	  (CONFIG_EXYNOS_ASV).
 
-config MSM_DEVFREQ_CPUBW
-	bool "MSM DEVFREQ device for CPU<->DDR IB/AB BW voting"
+config MSM_DEVFREQ_DEVBW
+	bool "MSM DEVFREQ device for device master <-> slave IB/AB BW voting"
 	depends on ARCH_MSM
 	select DEVFREQ_GOV_PERFORMANCE
 	select DEVFREQ_GOV_POWERSAVE
