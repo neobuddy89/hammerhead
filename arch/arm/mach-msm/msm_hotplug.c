@@ -474,9 +474,17 @@ reschedule:
 	reschedule_hotplug_work();
 }
 
-static void msm_hotplug_resume_work(struct work_struct *work)
+static void __ref msm_hotplug_resume_work(struct work_struct *work)
 {
-	online_cpu(stats.total_cpus);
+	int cpu;
+
+	/* Fire up all CPUs */
+	for_each_cpu_not(cpu, cpu_online_mask) {
+		if (cpu == 0)
+			continue;
+		cpu_up(cpu);
+		apply_down_lock(cpu);
+	}
 }
 
 static int lcd_notifier_callback(struct notifier_block *nb,
