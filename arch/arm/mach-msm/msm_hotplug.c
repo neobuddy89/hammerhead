@@ -313,7 +313,7 @@ static int check_down_lock(unsigned int cpu)
 
 static int get_lowest_load_cpu(void)
 {
-	int cpu, lowest_cpu = 1;
+	int cpu, lowest_cpu = 0;
 	unsigned int lowest_load = UINT_MAX;
 	unsigned int cpu_load[NR_CPUS];
 	unsigned int proj_load;
@@ -426,7 +426,6 @@ static void msm_hotplug_work(struct work_struct *work)
 	unsigned int i;
 
 	update_load_stats();
-	online_cpus = stats.online_cpus;
 
 	if (stats.cur_max_load >= hotplug.fast_lane_load) {
 		/* Enter the fast lane */
@@ -435,14 +434,15 @@ static void msm_hotplug_work(struct work_struct *work)
 	}
 
 	cur_load = stats.cur_avg_load;
+	online_cpus = stats.online_cpus;
 
 	/* If number of cpus locked, break out early */
 	if (hotplug.min_cpus_online == num_possible_cpus()) {
-		if (online_cpus < hotplug.min_cpus_online)
+		if (online_cpus != hotplug.min_cpus_online)
 			online_cpu(hotplug.min_cpus_online);
 		goto reschedule;
 	} else if (hotplug.max_cpus_online == stats.min_cpus) {
-		if (online_cpus > hotplug.max_cpus_online)
+		if (online_cpus != hotplug.max_cpus_online)
 			offline_cpu(hotplug.max_cpus_online);
 		goto reschedule;
 	}
@@ -460,10 +460,12 @@ static void msm_hotplug_work(struct work_struct *work)
 	else if (target < hotplug.min_cpus_online)
 		target = hotplug.min_cpus_online;
 
-	if (target > online_cpus)
-		online_cpu(target);
-	else if (target < online_cpus)
-		offline_cpu(target);
+	if (online_cpus != target) {
+		if (target > online_cpus)
+			online_cpu(target);
+		else if (target < online_cpus)
+			offline_cpu(target);
+	}
 
 	dprintk("%s: cur_load: %3u online_cpus: %u target: %u\n", MSM_HOTPLUG,
 		cur_load, online_cpus, target);
@@ -474,7 +476,7 @@ reschedule:
 
 static void msm_hotplug_resume_work(struct work_struct *work)
 {
-	online_cpu(hotplug.max_cpus_online);
+	online_cpu(stats.total_cpus);
 }
 
 static int lcd_notifier_callback(struct notifier_block *nb,
@@ -496,7 +498,7 @@ static void hotplug_input_event(struct input_handle *handle, unsigned int type,
 		return;
 
 	if (num_online_cpus() >= hotplug.cpus_boosted ||
-		hotplug.cpus_boosted > hotplug.min_cpus_online)
+		hotplug.cpus_boosted <= hotplug.min_cpus_online)
 		return;
 
 	dprintk("%s: online_cpus: %u boosted\n", MSM_HOTPLUG,
