@@ -587,6 +587,9 @@ static ssize_t store_enable_hotplug(struct device *dev,
 	if (ret != 1 || val < 0 || val > 1)
 		return -EINVAL;
 
+	if (val == hotplug.msm_enabled)
+		return count;
+
 	hotplug.msm_enabled = val;
 
 	if (hotplug.msm_enabled) {
