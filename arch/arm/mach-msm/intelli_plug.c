@@ -136,18 +136,18 @@ static unsigned int calculate_thread_stats(void)
 	unsigned int nr_run;
 	unsigned int threshold_size;
 
-	if (eco_mode_active == 1) {
-		threshold_size =  ARRAY_SIZE(nr_run_thresholds_eco);
-		nr_run_hysteresis = 4;
-		nr_fshift = 1;
-		if (debug_intelli_plug)
-			pr_info("intelliplug: eco mode active!");
-	} else if (strict_mode_active == 1) {
+	if (strict_mode_active == 1) {
 		threshold_size =  ARRAY_SIZE(nr_run_thresholds_strict);
 		nr_run_hysteresis = 2;
 		nr_fshift = 1;
 		if (debug_intelli_plug)
 			pr_info("intelliplug: strict mode active!");
+	} else if (eco_mode_active == 1) {
+		threshold_size =  ARRAY_SIZE(nr_run_thresholds_eco);
+		nr_run_hysteresis = 4;
+		nr_fshift = 1;
+		if (debug_intelli_plug)
+			pr_info("intelliplug: eco mode active!");
 	} else {
 		threshold_size =  ARRAY_SIZE(nr_run_thresholds_full);
 		nr_run_hysteresis = 8;
@@ -158,14 +158,12 @@ static unsigned int calculate_thread_stats(void)
 
 	for (nr_run = 1; nr_run < threshold_size; nr_run++) {
 		unsigned int nr_threshold;
-		if (eco_mode_active == 1) {
-			nr_threshold = nr_run_thresholds_eco[nr_run - 1];
-		} else if (strict_mode_active == 1) {
+		if (strict_mode_active == 1)
 			nr_threshold = nr_run_thresholds_strict[nr_run - 1];
-		} else {
+		else if (eco_mode_active == 1)
+			nr_threshold = nr_run_thresholds_eco[nr_run - 1];
+		else
 			nr_threshold = nr_run_thresholds_full[nr_run - 1];
-		}
-
 		if (nr_run_last <= nr_run)
 			nr_threshold += nr_run_hysteresis;
 		if (avg_nr_run <= (nr_threshold << (FSHIFT - nr_fshift)))
@@ -325,10 +323,10 @@ static void __ref intelli_plug_resume(struct power_suspend *handler)
 		mutex_unlock(&intelli_plug_mutex);
 
 		/* wake up everyone */
-		if (eco_mode_active == 1)
-			num_of_active_cores = 2;
-		else if (strict_mode_active == 1)
+		if (strict_mode_active == 1)
 			num_of_active_cores = 1;
+		else if (eco_mode_active == 1)
+			num_of_active_cores = 2;
 		else
 			num_of_active_cores = num_possible_cpus();
 
