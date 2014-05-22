@@ -45,17 +45,17 @@
 
 #define LOW_WATERMARK		2
 #define HIGH_WATERMARK		4
-#define DEFAULT_POLLING_MIN_SLEEP (950)
+#define DEFAULT_POLLING_MIN_SLEEP (1000)
 #define MAX_POLLING_SLEEP (6050)
 #define MIN_POLLING_SLEEP (950)
 
 static int msm_bam_dmux_debug_enable;
 module_param_named(debug_enable, msm_bam_dmux_debug_enable,
 		   int, S_IRUGO | S_IWUSR | S_IWGRP);
-static int POLLING_MIN_SLEEP = 2950;
+static int POLLING_MIN_SLEEP = 4950;
 module_param_named(min_sleep, POLLING_MIN_SLEEP,
 		   int, S_IRUGO | S_IWUSR | S_IWGRP);
-static int POLLING_MAX_SLEEP = 3050;
+static int POLLING_MAX_SLEEP = 5000;
 module_param_named(max_sleep, POLLING_MAX_SLEEP,
 		   int, S_IRUGO | S_IWUSR | S_IWGRP);
 static int POLLING_INACTIVITY = 1;
@@ -227,7 +227,7 @@ static struct workqueue_struct *bam_mux_tx_workqueue;
 static struct srcu_struct bam_dmux_srcu;
 
 /* A2 power collaspe */
-#define UL_TIMEOUT_DELAY 300	/* in ms */
+#define UL_TIMEOUT_DELAY 1000	/* in ms */
 #define ENABLE_DISCONNECT_ACK	0x1
 #define SHUTDOWN_TIMEOUT_MS	500
 #define UL_WAKEUP_TIMEOUT_MS	2000
@@ -1633,11 +1633,7 @@ static void ul_timeout(struct work_struct *work)
 			ul_packet_written = 0;
 			schedule_delayed_work(&ul_timeout_work,
 					msecs_to_jiffies(UL_TIMEOUT_DELAY));
-                } else if(polling_mode) {
-                        DMUX_LOG_KERR("%s: BAM is in polling mode, delay UL power down", __func__);
-                        schedule_delayed_work(&ul_timeout_work,
-                                       msecs_to_jiffies(UL_TIMEOUT_DELAY));
-                } else {
+		} else {
 			ul_powerdown();
 		}
 	}
@@ -1661,7 +1657,7 @@ static int ssrestart_check(void)
 	ret = subsystem_restart("modem");
 	if (ret == -ENODEV) {
 		DMUX_LOG_KERR("%s: modem subsystem restart failed\n", __func__);
-		BUG();
+		dump_stack();
 	}
 	return 1;
 }
