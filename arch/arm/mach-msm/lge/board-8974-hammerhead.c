@@ -50,7 +50,9 @@
 #include "../pm.h"
 #include "../modem_notifier.h"
 #include "../platsmp.h"
+#if defined(CONFIG_EARJACK_DEBUGGER)
 #include <mach/msm_serial_hs_lite.h>
+#endif
 #include <mach/board_lge.h>
 
 #if defined(CONFIG_LCD_KCAL)
@@ -233,11 +235,13 @@ void __init msm8974_init(void)
 	if (socinfo_init() < 0)
 		pr_err("%s: socinfo_init() failed\n", __func__);
 
+#if defined(CONFIG_EARJACK_DEBUGGER)
 	/*
 	 * disable the uart console
 	 * it will be enabled if detected earjack debugger
 	 */
 	msm_console_set_enable(false);
+#endif
 
 	msm_8974_init_gpiomux();
 	regulator_has_full_constraints();
