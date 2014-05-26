@@ -332,6 +332,9 @@ static void intelli_plug_suspend(struct power_suspend *handler)
 {
 	int cpu = 0;
 
+	if (atomic_read(&intelli_plug_active) == 0)
+		return;
+
 	/* flush hotplug workqueue */
 	flush_workqueue(intelliplug_wq);
 	cancel_delayed_work_sync(&intelli_plug_work);
@@ -351,6 +354,9 @@ static void intelli_plug_suspend(struct power_suspend *handler)
 static void __ref intelli_plug_resume(struct power_suspend *handler)
 {
 	int cpu, num_of_active_cores;
+
+	if (atomic_read(&intelli_plug_active) == 0)
+		return;
 
 	mutex_lock(&intelli_plug_mutex);
 	/* keep cores awake long enough for faster wake up */
@@ -380,9 +386,8 @@ static void __ref intelli_plug_resume(struct power_suspend *handler)
 	}
 
 	/* resume hotplug workqueue */
-	if (atomic_read(&intelli_plug_active) == 1)
-		queue_delayed_work_on(0, intelliplug_wq, &intelli_plug_work,
-				      RESUME_SAMPLING_MS);
+	queue_delayed_work_on(0, intelliplug_wq, &intelli_plug_work,
+			      RESUME_SAMPLING_MS);
 }
 
 static struct power_suspend intelli_plug_power_suspend_driver = {
@@ -393,7 +398,8 @@ static struct power_suspend intelli_plug_power_suspend_driver = {
 static void __ref intelli_plug_boost_fn(struct work_struct *work)
 {
 	if (!strict_mode_active && touch_boosted_cpus > 1
-		&& hotplug_suspended == false) {
+		&& hotplug_suspended == false
+		&& atomic_read(&intelli_plug_active) == 1) {
 		int cpu, boosted_cpus;		
 
 		if (eco_mode_active)
