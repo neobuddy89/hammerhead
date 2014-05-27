@@ -13,7 +13,6 @@
 #include <linux/module.h>
 #include <linux/devfreq.h>
 #include <linux/math64.h>
-#include <linux/msm_adreno_devfreq.h>
 #include "governor.h"
 
 #define DEVFREQ_SIMPLE_ONDEMAND	"simple_ondemand"
@@ -31,11 +30,9 @@ static int devfreq_simple_ondemand_func(struct devfreq *df,
 					u32 *flag)
 {
 	struct devfreq_dev_status stat;
+	struct devfreq_simple_ondemand_data *data = df->data;
 	int err;
 	unsigned long long a, b;
-	unsigned int dfso_upthreshold = DFSO_UPTHRESHOLD;
-	unsigned int dfso_downdifferential = DFSO_DOWNDIFFERENCTIAL;
-	struct devfreq_simple_ondemand_data *data = df->data;
 	unsigned long max = (df->max_freq) ? df->max_freq : UINT_MAX;
 	unsigned long min = (df->min_freq) ? df->min_freq : 0;
 
@@ -44,16 +41,6 @@ static int devfreq_simple_ondemand_func(struct devfreq *df,
 	err = df->profile->get_dev_status(df->dev.parent, &stat);
 	if (err)
 		return err;
-
-	if (data) {
-		if (data->upthreshold)
-			dfso_upthreshold = data->upthreshold;
-		if (data->downdifferential)
-			dfso_downdifferential = data->downdifferential;
-	}
-	if (dfso_upthreshold > 100 ||
-	    dfso_upthreshold < dfso_downdifferential)
-		return -EINVAL;
 
 	/* Prevent overflow */
 	if (stat.busy_time >= (1 << 24) || stat.total_time >= (1 << 24)) {
