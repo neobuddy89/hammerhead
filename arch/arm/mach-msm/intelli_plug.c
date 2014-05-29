@@ -37,13 +37,13 @@
 #define BUSY_SAMPLING_MS		HZ / 5
 #define RESUME_SAMPLING_MS		HZ / 10
 #define START_DELAY_MS			HZ * 20
+#define MIN_INPUT_INTERVAL		150 * 1000L
 
-static DEFINE_MUTEX(intelli_plug_mutex);
+static struct mutex intelli_plug_mutex;
+static u64 last_boost_time;
 
 static struct delayed_work intelli_plug_work;
-static struct work_struct intelli_plug_boost;
 static struct workqueue_struct *intelliplug_wq;
-static struct workqueue_struct *intelliplug_boost_wq;
 
 static unsigned int sampling_time = 10;
 static unsigned int persist_count = 0;
@@ -395,42 +395,40 @@ static struct power_suspend intelli_plug_power_suspend_driver = {
 	.resume = intelli_plug_resume,
 };
 
-static void __ref intelli_plug_boost_fn(struct work_struct *work)
-{
-	if (!strict_mode_active && touch_boosted_cpus > 1
-		&& hotplug_suspended == false
-		&& atomic_read(&intelli_plug_active) == 1) {
-		int cpu, boosted_cpus;		
-
-		if (eco_mode_active)
-			boosted_cpus = 2;
-		else
-			boosted_cpus = touch_boosted_cpus;
-
-		for_each_cpu_not(cpu, cpu_online_mask) {
-			if (boosted_cpus <= num_online_cpus())
-				break;
-			if (cpu == 0)
-				continue;
-			cpu_up(cpu);
-		}
-	}
-}
-
-static void intelli_plug_input_event(struct input_handle *handle,
+static void __ref intelli_plug_input_event(struct input_handle *handle,
 		unsigned int type, unsigned int code, int value)
 {
-	if (debug_intelli_plug)
-		pr_info("intelli_plug touched!\n");
+	int cpu, boosted_cpus;	
+	u64 now;	
 
-	queue_work_on(0, intelliplug_boost_wq, &intelli_plug_boost);
+	if (strict_mode_active || touch_boosted_cpus == 1 || hotplug_suspended)
+		return;
+
+	now = ktime_to_us(ktime_get());
+	if (now - last_boost_time < MIN_INPUT_INTERVAL)
+		return;
+
+	if (eco_mode_active)
+		boosted_cpus = 2;
+	else
+		boosted_cpus = touch_boosted_cpus;
+
+	for_each_cpu_not(cpu, cpu_online_mask) {
+		if (boosted_cpus <= num_online_cpus())
+			break;
+		if (cpu == 0)
+			continue;
+		cpu_up(cpu);
+	}
+	last_boost_time = ktime_to_us(ktime_get());
 }
 
 static int intelli_plug_input_connect(struct input_handler *handler,
-		struct input_dev *dev, const struct input_device_id *id)
+				 struct input_dev *dev,
+				 const struct input_device_id *id)
 {
 	struct input_handle *handle;
-	int error;
+	int err;
 
 	handle = kzalloc(sizeof(struct input_handle), GFP_KERNEL);
 	if (!handle)
@@ -438,24 +436,25 @@ static int intelli_plug_input_connect(struct input_handler *handler,
 
 	handle->dev = dev;
 	handle->handler = handler;
-	handle->name = "intelliplug";
+	handle->name = handler->name;
 
-	error = input_register_handle(handle);
-	if (error)
-		goto err2;
+	err = input_register_handle(handle);
+	if (err)
+		goto err_register;
 
-	error = input_open_device(handle);
-	if (error)
-		goto err1;
+	err = input_open_device(handle);
+	if (err)
+		goto err_open;
 
 	if (debug_intelli_plug)
 		pr_info("%s found and connected!\n", dev->name);
+
 	return 0;
-err1:
+err_open:
 	input_unregister_handle(handle);
-err2:
+err_register:
 	kfree(handle);
-	return error;
+	return err;
 }
 
 static void intelli_plug_input_disconnect(struct input_handle *handle)
@@ -496,8 +495,7 @@ static int __ref intelli_plug_start(void)
 {
 	int rc;
 
-	intelliplug_wq = create_singlethread_workqueue("intelliplug");
-	intelliplug_boost_wq = create_singlethread_workqueue("iplug_boost");
+	intelliplug_wq = alloc_workqueue("intelliplug", WQ_HIGHPRI | WQ_FREEZABLE, 0);
 	rc = input_register_handler(&intelli_plug_input_handler);
 
 	if (!intelliplug_wq) {
@@ -506,17 +504,12 @@ static int __ref intelli_plug_start(void)
 		return -EFAULT;
 	}
 
-	if (!intelliplug_boost_wq) {
-		printk(KERN_ERR "Failed to create intelliplug \
-				boost workqueue\n");
-		return -EFAULT;
-	}
-
 	sampling_time = 10;
 	hotplug_suspended = false;
 
+	mutex_init(&intelli_plug_mutex);
+
 	INIT_DELAYED_WORK(&intelli_plug_work, intelli_plug_work_fn);
-	INIT_WORK(&intelli_plug_boost, intelli_plug_boost_fn);
 
 	queue_delayed_work_on(0, intelliplug_wq, &intelli_plug_work,
 			      START_DELAY_MS);
@@ -529,10 +522,10 @@ static int __ref intelli_plug_start(void)
 static void intelli_plug_stop(void)
 {
 	unregister_power_suspend(&intelli_plug_power_suspend_driver);
-	cancel_work_sync(&intelli_plug_boost);
+	flush_workqueue(intelliplug_wq);
 	cancel_delayed_work_sync(&intelli_plug_work);
+	mutex_destroy(&intelli_plug_mutex);
 	input_unregister_handler(&intelli_plug_input_handler);
-	destroy_workqueue(intelliplug_boost_wq);
 	destroy_workqueue(intelliplug_wq);
 }
 
