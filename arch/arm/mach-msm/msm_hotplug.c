@@ -20,7 +20,17 @@
 #include <linux/device.h>
 #include <linux/slab.h>
 #include <linux/cpufreq.h>
+#ifdef CONFIG_LCD_NOTIFY
 #include <linux/lcd_notify.h>
+#else
+#ifdef CONFIG_POWERSUSPEND
+#include <linux/powersuspend.h>
+#else
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+#endif
+#endif
 #include <linux/mutex.h>
 #include <linux/input.h>
 #include <linux/math64.h>
@@ -68,7 +78,9 @@ static struct cpu_hotplug {
 	struct work_struct down_work;
 	struct delayed_work suspend_work;
 	struct work_struct resume_work;
+#ifdef CONFIG_LCD_NOTIFY
 	struct notifier_block notif;
+#endif
 } hotplug = {
 	.msm_enabled = HOTPLUG_ENABLED,
 	.suspended = 0,
@@ -545,22 +557,54 @@ static void __ref msm_hotplug_resume(struct work_struct *work)
 		reschedule_hotplug_work();
 }
 
+#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+#ifdef CONFIG_LCD_NOTIFY
+static void __msm_hotplug_suspend(void)
+#else
+#ifdef CONFIG_POWERSUSPEND
+static void __msm_hotplug_suspend(struct power_suspend *handler)
+#else
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void __msm_hotplug_suspend(struct early_suspend *handler)
+#endif
+#endif
+#endif
+{
+	INIT_DELAYED_WORK(&hotplug.suspend_work, msm_hotplug_suspend);
+	schedule_delayed_work_on(0, &hotplug.suspend_work, 
+				 msecs_to_jiffies(hotplug.suspend_defer_time * 1000)); 
+}
+
+#ifdef CONFIG_LCD_NOTIFY
+static void __msm_hotplug_resume(void)
+#else
+#ifdef CONFIG_POWERSUSPEND
+static void __msm_hotplug_resume(struct power_suspend *handler)
+#else
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void __msm_hotplug_resume(struct early_suspend *handler)
+#endif
+#endif
+#endif
+{
+	cancel_delayed_work_sync(&hotplug.suspend_work);
+	schedule_work_on(0, &hotplug.resume_work);
+}
+#endif
+
+#ifdef CONFIG_LCD_NOTIFY
 static int lcd_notifier_callback(struct notifier_block *this,
 				unsigned long event, void *data)
 {
 	switch (event) {
-	case LCD_EVENT_ON_START:
-		cancel_delayed_work_sync(&hotplug.suspend_work);
-		schedule_work_on(0, &hotplug.resume_work);
-		break;
 	case LCD_EVENT_ON_END:
-		break;
 	case LCD_EVENT_OFF_START:
-		INIT_DELAYED_WORK(&hotplug.suspend_work, msm_hotplug_suspend);
+		break;
+	case LCD_EVENT_ON_START:
+		__msm_hotplug_resume();
 		break;
 	case LCD_EVENT_OFF_END:
-		schedule_delayed_work_on(0, &hotplug.suspend_work, 
-					 msecs_to_jiffies(hotplug.suspend_defer_time * 1000)); 
+		__msm_hotplug_suspend();
 		break;
 	default:
 		break;
@@ -568,6 +612,19 @@ static int lcd_notifier_callback(struct notifier_block *this,
 
 	return NOTIFY_OK;
 }
+#else
+#if defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+#ifdef CONFIG_POWERSUSPEND
+static struct power_suspend msm_hotplug_power_suspend_driver = {
+#else
+static struct early_suspend msm_hotplug_early_suspend_driver = {
+	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
+#endif
+	.suspend = __msm_hotplug_suspend,
+	.resume = __msm_hotplug_resume,
+};
+#endif
+#endif
 
 static void hotplug_input_event(struct input_handle *handle, unsigned int type,
 				unsigned int code, int value)
@@ -674,13 +731,22 @@ static int __ref msm_hotplug_start(void)
 		goto err_out;
 	}
 
+#ifdef CONFIG_LCD_NOTIFY
 	hotplug.notif.notifier_call = lcd_notifier_callback;
         if (lcd_register_client(&hotplug.notif) != 0) {
                 pr_err("%s: Failed to register LCD notifier callback\n",
                        MSM_HOTPLUG);
 		goto err_dev;
 	}
-
+#else
+#ifdef CONFIG_POWERSUSPEND
+	register_power_suspend(&msm_hotplug_power_suspend_driver);
+#else
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	register_early_suspend(&msm_hotplug_early_suspend_driver);
+#endif
+#endif
+#endif
 	ret = input_register_handler(&hotplug_input_handler);
 	if (ret) {
 		pr_err("%s: Failed to register input handler: %d\n",
@@ -749,7 +815,18 @@ static void msm_hotplug_stop(void)
 	mutex_destroy(&stats.stats_mutex);
 	kfree(stats.load_hist);
 
+#ifdef CONFIG_LCD_NOTIFY
 	lcd_unregister_client(&hotplug.notif);
+	hotplug.notif.notifier_call = NULL;
+#else
+#ifdef CONFIG_POWERSUSPEND
+	unregister_power_suspend(&msm_hotplug_power_suspend_driver);
+#else
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	unregister_early_suspend(&msm_hotplug_early_suspend_driver);
+#endif
+#endif
+#endif
 	input_unregister_handler(&hotplug_input_handler);
 
 	destroy_workqueue(hotplug_wq);
