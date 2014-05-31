@@ -38,7 +38,7 @@
 #define RESUME_SAMPLING_MS		HZ / 10
 #define START_DELAY_MS			HZ * 20
 #define MIN_INPUT_INTERVAL		150 * 1000L
-#define BOOST_LOCK_DUR			4000 * 1000L
+#define BOOST_LOCK_DUR			2500 * 1000L
 
 static struct mutex intelli_plug_mutex;
 static u64 last_boost_time, last_input;
@@ -61,6 +61,7 @@ static unsigned int wake_boost_active = 0;
 static unsigned int touch_boosted_cpus = 2;
 
 /* HotPlug Driver Tuning */
+static u64 boost_lock_duration = BOOST_LOCK_DUR;
 static unsigned int def_sampling_ms = DEF_SAMPLING_MS;
 static unsigned int busy_sampling_ms = BUSY_SAMPLING_MS;
 static unsigned int dual_core_persistence = DUAL_CORE_PERSISTENCE;
@@ -243,7 +244,7 @@ static void __ref intelli_plug_work_fn(struct work_struct *work)
 
 	now = ktime_to_us(ktime_get());
 	if (online_cpus <= boosted_cpus &&
-	    (now - last_input < BOOST_LOCK_DUR))
+	    (now - last_input < boost_lock_duration))
 		goto reschedule;
 
 	switch (cpu_count) {
@@ -655,6 +656,29 @@ static ssize_t store_intelli_plug_active(struct kobject *kobj,
 	return count;
 }
 
+static ssize_t show_boost_lock_duration(struct kobject *kobj,
+					struct kobj_attribute *attr, 
+					char *buf)
+{
+	return sprintf(buf, "%llu\n", div_u64(boost_lock_duration, 1000));
+}
+
+static ssize_t store_boost_lock_duration(struct kobject *kobj,
+					 struct kobj_attribute *attr,
+					 const char *buf, size_t count)
+{
+	int ret;
+	u64 val;
+
+	ret = sscanf(buf, "%llu", &val);
+	if (ret != 1)
+		return -EINVAL;
+
+	boost_lock_duration = val * 1000;
+
+	return count;
+}
+
 #define KERNEL_ATTR_RW(_name) \
 static struct kobj_attribute _name##_attr = \
 	__ATTR(_name, 0644, show_##_name, store_##_name)
@@ -664,6 +688,7 @@ KERNEL_ATTR_RW(eco_mode_active);
 KERNEL_ATTR_RW(strict_mode_active);
 KERNEL_ATTR_RW(wake_boost_active);
 KERNEL_ATTR_RW(touch_boosted_cpus);
+KERNEL_ATTR_RW(boost_lock_duration);
 KERNEL_ATTR_RW(def_sampling_ms);
 KERNEL_ATTR_RW(busy_sampling_ms);
 KERNEL_ATTR_RW(dual_core_persistence);
@@ -681,6 +706,7 @@ static struct attribute *intelli_plug_attrs[] = {
 	&strict_mode_active_attr.attr,
 	&wake_boost_active_attr.attr,
 	&touch_boosted_cpus_attr.attr,
+	&boost_lock_duration_attr.attr,
 	&def_sampling_ms_attr.attr,
 	&busy_sampling_ms_attr.attr,
 	&dual_core_persistence_attr.attr,
