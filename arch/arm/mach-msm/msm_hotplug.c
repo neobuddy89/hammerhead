@@ -44,7 +44,7 @@
 #define DEFAULT_NR_CPUS_BOOSTED	1
 #define DEFAULT_MIN_CPUS_ONLINE	1
 #define DEFAULT_MAX_CPUS_ONLINE	NR_CPUS
-#define DEFAULT_FAST_LANE_LOAD	120
+#define DEFAULT_FAST_LANE_LOAD	95
 #if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
 #define DEFAULT_SUSPEND_DEFER_TIME	10
 #endif
@@ -289,10 +289,10 @@ struct loads_tbl {
 
 static struct loads_tbl loads[] = {
 	LOAD_SCALE(400, 0),
-	LOAD_SCALE(80, 0),
-	LOAD_SCALE(140, 50),
-	LOAD_SCALE(220, 120),
-	LOAD_SCALE(410, 210),
+	LOAD_SCALE(65, 0),
+	LOAD_SCALE(120, 50),
+	LOAD_SCALE(190, 100),
+	LOAD_SCALE(410, 170),
 	LOAD_SCALE(0, 0),
 };
 
@@ -448,11 +448,11 @@ static unsigned int load_to_update_rate(unsigned int load)
 	return ret;
 }
 
-static void reschedule_hotplug_work(void)
+static int reschedule_hotplug_work(void)
 {
-	queue_delayed_work_on(0, hotplug_wq, &hotplug_work,
-			      msecs_to_jiffies(load_to_update_rate(
-					       stats.cur_avg_load)));
+	return queue_delayed_work_on(0, hotplug_wq, &hotplug_work,
+				     msecs_to_jiffies(load_to_update_rate(
+						      stats.cur_avg_load)));
 }
 
 static void msm_hotplug_work(struct work_struct *work)
