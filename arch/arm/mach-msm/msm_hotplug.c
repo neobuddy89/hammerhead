@@ -44,7 +44,7 @@
 #define DEFAULT_NR_CPUS_BOOSTED	1
 #define DEFAULT_MIN_CPUS_ONLINE	1
 #define DEFAULT_MAX_CPUS_ONLINE	NR_CPUS
-#define DEFAULT_FAST_LANE_LOAD	95
+#define DEFAULT_FAST_LANE_LOAD	99
 #define DEFAULT_FAST_LANE_MIN_FREQ	1728000
 #if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
 #define DEFAULT_SUSPEND_DEFER_TIME	10
@@ -453,9 +453,9 @@ static unsigned int load_to_update_rate(unsigned int load)
 
 static void reschedule_hotplug_work(void)
 {
+	int delay = load_to_update_rate(stats.cur_avg_load);
 	queue_delayed_work_on(0, hotplug_wq, &hotplug_work,
-			      msecs_to_jiffies(load_to_update_rate(
-						stats.cur_avg_load)));
+			      msecs_to_jiffies(delay));
 }
 
 static void msm_hotplug_work(struct work_struct *work)
@@ -471,8 +471,8 @@ static void msm_hotplug_work(struct work_struct *work)
 
 	update_load_stats();
 
-	if (cpufreq_quick_get(0) >= hotplug.fast_lane_min_freq &&
-	    stats.cur_max_load >= hotplug.fast_lane_load) {
+	if (stats.cur_max_load >= hotplug.fast_lane_load &&
+	    cpufreq_quick_get(0) >= hotplug.fast_lane_min_freq) {
 		/* Enter the fast lane */
 		online_cpu(hotplug.max_cpus_online);
 		goto reschedule;
