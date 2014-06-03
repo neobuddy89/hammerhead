@@ -31,7 +31,6 @@
 #include <linux/kthread.h>
 #include <linux/slab.h>
 #include <linux/kernel_stat.h>
-#include <asm/cputime.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/cpufreq_interactive.h>
@@ -150,8 +149,8 @@ struct cpufreq_governor cpufreq_gov_interactive = {
 	.owner = THIS_MODULE,
 };
 
-static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu,
-						  cputime64_t *wall)
+static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu,
+						  u64 *wall)
 {
 	u64 idle_time;
 	u64 cur_wall_time;
@@ -173,8 +172,8 @@ static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu,
 	return jiffies_to_usecs(idle_time);
 }
 
-static inline cputime64_t get_cpu_idle_time(unsigned int cpu,
-					    cputime64_t *wall)
+static inline u64 get_cpu_idle_time(unsigned int cpu,
+					    u64 *wall)
 {
 	u64 idle_time = get_cpu_idle_time_us(cpu, wall);
 
