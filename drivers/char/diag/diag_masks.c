@@ -28,7 +28,6 @@ int diag_event_num_bytes;
 
 #define ALL_EQUIP_ID		100
 #define ALL_SSID		-1
-#define MAX_SSID_PER_RANGE	100
 
 #define FEATURE_MASK_LEN_BYTES		2
 
