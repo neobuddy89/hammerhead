@@ -299,7 +299,13 @@ static int ngd_xfer_msg(struct slim_controller *ctrl, struct slim_msg_txn *txn)
 		 * If the state was DOWN, SSR UP notification will take
 		 * care of putting the device in active state.
 		 */
-		ngd_slim_runtime_resume(dev->dev);
+		ret = ngd_slim_runtime_resume(dev->dev);
+
+		if (ret) {
+			SLIM_ERR(dev, "slim resume failed ret:%d, state:%d",
+					ret, dev->state);
+			return -EREMOTEIO;
+		}
 	}
 
 	else if (txn->mc & SLIM_MSG_CLK_PAUSE_SEQ_FLG)
@@ -364,11 +370,13 @@ static int ngd_xfer_msg(struct slim_controller *ctrl, struct slim_msg_txn *txn)
 		 * Setting runtime status to suspended clears the error
 		 * It also makes HW status cosistent with what SW has it here
 		 */
-		if (ret == -ENETRESET && dev->state == MSM_CTRL_DOWN) {
+		if (ret < 0) {
+			SLIM_ERR(dev, "slim ctrl vote failed ret:%d, state:%d",
+					ret, dev->state);
 			pm_runtime_set_suspended(dev->dev);
 			msm_slim_put_ctrl(dev);
 			return -EREMOTEIO;
-		} else if (ret >= 0) {
+		} else {
 			dev->state = MSM_CTRL_AWAKE;
 		}
 	}
