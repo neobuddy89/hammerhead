@@ -362,16 +362,14 @@ static struct input_handler cpuboost_input_handler = {
 static int cpuboost_cpu_callback(struct notifier_block *cpu_nb,
 				 unsigned long action, void *hcpu)
 {
-	if (!hotplug_boost || !input_boost_freq)
-		return NOTIFY_OK;
-
 	switch (action & ~CPU_TASKS_FROZEN) {
 	case CPU_UP_PREPARE:
 	case CPU_DEAD:
 	case CPU_UP_CANCELED:
 		break;
 	case CPU_ONLINE:
-		if (work_pending(&input_boost_work))
+		if (!hotplug_boost || !input_boost_freq ||
+		     work_pending(&input_boost_work))
 			break;
 		pr_debug("Hotplug boost for CPU%d\n", (int)hcpu);
 		queue_work(cpu_boost_wq, &input_boost_work);
