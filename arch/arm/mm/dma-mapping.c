@@ -243,7 +243,8 @@ static void __dma_clear_buffer(struct page *page, size_t size,
 		outer_flush_range(base, end);
 	} else {
 		void *ptr = page_address(page);
-		memset(ptr, 0, size);
+		if (!dma_get_attr(DMA_ATTR_SKIP_ZEROING, attrs))
+			memset(ptr, 0, size);
 		dmac_flush_range(ptr, ptr + size);
 		outer_flush_range(__pa(ptr), __pa(ptr) + size);
 	}
@@ -1178,7 +1179,7 @@ static struct page **__iommu_alloc_buffer(struct device *dev, size_t size,
 
 		pfn = pfn_to_page(pfn);
 
-		__dma_clear_buffer(page, size);
+		__dma_clear_buffer(page, size, NULL);
 
 		for (i = 0; i < count; i++)
 			pages[i] = page + i;
