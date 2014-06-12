@@ -164,7 +164,7 @@ static unsigned int calculate_thread_stats(void)
 	unsigned int threshold_size;
 
 	threshold_size = max_cpus_online;
-	nr_run_hysteresis = max_cpus_online / 2;
+	nr_run_hysteresis = max_cpus_online * 2;
 	nr_fshift = max_cpus_online - 1;
 
 	for (nr_run = 1; nr_run < threshold_size; nr_run++) {
