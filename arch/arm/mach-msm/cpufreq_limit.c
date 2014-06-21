@@ -25,8 +25,6 @@
 #include <linux/earlysuspend.h>
 #endif
 
-#include <mach/cpufreq.h>
-
 #define MSM_CPUFREQ_LIMIT_MAJOR		2
 #define MSM_CPUFREQ_LIMIT_MINOR		0
 
@@ -294,7 +292,7 @@ static int msm_cpufreq_limit_init(void)
 	int ret;
 
 	msm_cpufreq_limit_kobj =
-		kobject_create_and_add("msm_cpufreq_limit", kernel_kobj);
+		kobject_create_and_add(MSM_LIMIT, kernel_kobj);
 	if (!msm_cpufreq_limit_kobj) {
 		pr_err("%s msm_cpufreq_limit_kobj kobject create failed!\n",
 			__func__);
