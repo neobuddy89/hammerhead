@@ -33,6 +33,15 @@
 #define DEFAULT_SUSPEND_FREQUENCY	1728000
 #define DEFAULT_RESUME_FREQUENCY	2265600
 
+static unsigned int debug = 0;
+module_param_named(debug_mask, debug, uint, 0644);
+
+#define dprintk(msg...)		\
+do { 				\
+	if (debug)		\
+		pr_info(msg);	\
+} while (0)
+
 static struct cpu_limit {
 	uint32_t suspend_max_freq;
 	uint32_t resume_max_freq;
@@ -55,8 +64,7 @@ static void update_cpu_max_freq(uint32_t max_freq)
 	struct cpufreq_policy *policy;
 	struct cpufreq_policy n_policy;
 
-	/* TODO: Cleanup after review */
-	pr_info("%s: Trying to set %uMHz\n", MSM_LIMIT, max_freq / 1000);
+	dprintk("%s: Trying to set %uMHz\n", MSM_LIMIT, max_freq / 1000);
 	for_each_possible_cpu(cpu) {
 		policy = cpufreq_cpu_get(cpu);
 		if (policy) {
@@ -64,17 +72,19 @@ static void update_cpu_max_freq(uint32_t max_freq)
 			    max_freq != policy->max) {
 				policy->user_policy.max = max_freq;
 				policy->max = max_freq;
-				pr_info("%s: Set %uMHz for CPU%u\n", MSM_LIMIT, max_freq / 1000, cpu);
+				dprintk("%s: Set %uMHz for CPU%u\n", MSM_LIMIT, max_freq / 1000, cpu);
 			}
 			cpufreq_cpu_put(policy);
-			/* Do we really need to update policy? */
-//			cpufreq_update_policy(cpu);
 		}
 	}
+
+	if (!debug)
+		return;
+
 	/* Check if we really updated max freq */
 	ret = cpufreq_get_policy(&n_policy, 0);
 	if (!ret)
-		pr_info("%s: Current Max Freq is %uMHz\n", MSM_LIMIT, n_policy.max / 1000);
+		dprintk("%s: Current Max Freq is %uMHz\n", MSM_LIMIT, n_policy.max / 1000);
 }
 
 static void msm_limit_suspend(struct work_struct *work)
