@@ -1,5 +1,5 @@
 /*
- * MSM Frequency Limiter Driver
+ * MSM CPU Frequency Limiter Driver
  *
  * Copyright (c) 2013-2014, Dorimanx <yuri@bynet.co.il>
  * Copyright (c) 2013-2014, Pranav Vashi <neobuddy89@gmail.com>
@@ -30,8 +30,8 @@
 
 #define MSM_LIMIT			"msm_limiter"
 #define DEFAULT_SUSPEND_DEFER_TIME	5
-#define DEFAULT_SUSPEND_FREQUENCY 	1728000
-#define DEFAULT_RESUME_FREQUENCY 	2265600
+#define DEFAULT_SUSPEND_FREQUENCY	1728000
+#define DEFAULT_RESUME_FREQUENCY	2265600
 
 static struct cpu_limit {
 	uint32_t suspend_max_freq;
@@ -166,7 +166,7 @@ static ssize_t suspend_defer_time_store(struct kobject *kobj,
 	int ret;
 	unsigned int val;
 
-	ret = sscanf(buf, "%u", &val);
+	ret = sscanf(buf, "%u\n", &val);
 	if (ret != 1)
 		return -EINVAL;
 
@@ -189,20 +189,21 @@ static ssize_t suspend_max_freq_store(struct kobject *kobj,
 	unsigned int val;
 	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 
-	ret = sscanf(buf, "%u", &val);
+	ret = sscanf(buf, "%u\n", &val);
 	if (ret != 1)
 		return -EINVAL;
 
 	if (val == 0)
 		goto out;
 
+	if (val == limit.suspend_max_freq)
+		return count;
+
 	if (val < policy->cpuinfo.min_freq)
 		val = policy->cpuinfo.min_freq;
 	else if (val > policy->cpuinfo.max_freq)
 		val = policy->cpuinfo.max_freq;
 
-	if (val == limit.suspend_max_freq)
-		return count;
 out:
 	limit.suspend_max_freq = val;
 
@@ -223,20 +224,22 @@ static ssize_t resume_max_freq_store(struct kobject *kobj,
 	unsigned int val;
 	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 
-	ret = sscanf(buf, "%u", &val);
+	ret = sscanf(buf, "%u\n", &val);
 	if (ret != 1)
 		return -EINVAL;
 
 	if (val == 0)
 		goto out;
 
+	if (val == limit.resume_max_freq)
+		return count;
+
 	if (val < policy->cpuinfo.min_freq)
 		val = policy->cpuinfo.min_freq;
 	else if (val > policy->cpuinfo.max_freq)
 		val = policy->cpuinfo.max_freq;
 
-	if (val == limit.resume_max_freq)
-		return count;
+
 out:
 	limit.resume_max_freq = val;
 	schedule_work_on(0, &limit.resume_work);
@@ -251,7 +254,7 @@ static ssize_t msm_cpufreq_limit_version_show(struct kobject *kobj,
 			MSM_CPUFREQ_LIMIT_MAJOR, MSM_CPUFREQ_LIMIT_MINOR);
 }
 
-static struct kobj_attribute msm_cpufreq_limit_version_attribute = 
+static struct kobj_attribute msm_cpufreq_limit_version_attribute =
 	__ATTR(msm_cpufreq_limit_version, 0444,
 		msm_cpufreq_limit_version_show,
 		NULL);
@@ -311,9 +314,9 @@ static int msm_cpufreq_limit_init(void)
 #ifdef CONFIG_LCD_NOTIFY
 	limit.notif.notifier_call = lcd_notifier_callback;
 	ret = lcd_register_client(&limit.notif);
-        if (ret != 0) {
-                pr_err("%s: Failed to register LCD notifier callback\n",
-                       MSM_LIMIT);
+	if (ret != 0) {
+		pr_err("%s: Failed to register LCD notifier callback\n",
+			MSM_LIMIT);
 		goto err_dev;
 	}
 #elif defined(CONFIG_POWERSUSPEND)
@@ -356,5 +359,5 @@ module_exit(msm_cpufreq_limit_exit);
 
 MODULE_AUTHOR("Dorimanx <yuri@bynet.co.il>");
 MODULE_AUTHOR("Pranav Vashi <neobuddy89@gmail.com>");
-MODULE_DESCRIPTION("MSM Frequency Limiter Driver");
-MODULE_LICENSE("GPL v2"); 
+MODULE_DESCRIPTION("MSM CPU Frequency Limiter Driver");
+MODULE_LICENSE("GPL v2");
