@@ -29,7 +29,7 @@
 #define MSM_CPUFREQ_LIMIT_MINOR		0
 
 #define MSM_LIMIT			"msm_limiter"
-#define DEFAULT_SUSPEND_DEFER_TIME	5
+#define DEFAULT_SUSPEND_DEFER_TIME	10
 #define DEFAULT_SUSPEND_FREQUENCY	1728000
 #define DEFAULT_RESUME_FREQUENCY	2265600
 
@@ -45,15 +45,18 @@ do { 				\
 static struct cpu_limit {
 	uint32_t suspend_max_freq;
 	uint32_t resume_max_freq;
+	unsigned int suspended;
 	unsigned int suspend_defer_time;
 	struct delayed_work suspend_work;
 	struct work_struct resume_work;
+	struct mutex msm_limiter_mutex;
 #ifdef CONFIG_LCD_NOTIFY
 	struct notifier_block notif;
 #endif
 } limit = {
 	.suspend_max_freq = DEFAULT_SUSPEND_FREQUENCY,
 	.resume_max_freq = DEFAULT_RESUME_FREQUENCY,
+	.suspended = 0,
 	.suspend_defer_time = DEFAULT_SUSPEND_DEFER_TIME,
 };
 
@@ -93,14 +96,22 @@ static void msm_limit_suspend(struct work_struct *work)
 	if (!limit.suspend_max_freq || !limit.resume_max_freq)
 		return;
 
+	mutex_lock(&limit.msm_limiter_mutex);
+	limit.suspended = 1;
+	mutex_unlock(&limit.msm_limiter_mutex);
+
 	update_cpu_max_freq(limit.suspend_max_freq);
 }
 
 static void msm_limit_resume(struct work_struct *work)
 {
 	/* Do not resume if resume freq not available */
-	if (!limit.resume_max_freq)
+	if (!limit.resume_max_freq || !limit.suspended)
 		return;
+
+	mutex_lock(&limit.msm_limiter_mutex);
+	limit.suspended = 0;
+	mutex_unlock(&limit.msm_limiter_mutex);
 
 	/* Restore max allowed freq */
 	update_cpu_max_freq(limit.resume_max_freq);
@@ -335,6 +346,7 @@ static int msm_cpufreq_limit_init(void)
 	register_early_suspend(&msm_limit_early_suspend_driver);
 #endif
 
+	mutex_init(&limit.msm_limiter_mutex);
 	INIT_DELAYED_WORK(&limit.suspend_work, msm_limit_suspend);
 	INIT_WORK(&limit.resume_work, msm_limit_resume);
 	schedule_work_on(0, &limit.resume_work);
@@ -353,6 +365,7 @@ static void msm_cpufreq_limit_exit(void)
 
 	cancel_work_sync(&limit.resume_work);
 	cancel_delayed_work_sync(&limit.suspend_work);
+	mutex_destroy(&limit.msm_limiter_mutex);
 
 #ifdef CONFIG_LCD_NOTIFY
 	lcd_unregister_client(&limit.notif);
