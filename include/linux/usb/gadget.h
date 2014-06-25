@@ -509,6 +509,7 @@ struct usb_gadget_ops {
  * @usb_core_id: Identifies the usb core controlled by this usb_gadget.
  *		 Used in case of more then one core operates concurrently.
  * @streaming_enabled: Enable streaming mode with usb core.
+ * @xfer_isr_count: UI (transfer complete) interrupts count
  *
  * Gadgets have a mostly-portable "gadget driver" implementing device
  * functions, handling all usb configurations and interfaces.  Gadget
@@ -547,6 +548,7 @@ struct usb_gadget {
 	struct device			dev;
 	u8				usb_core_id;
 	bool				streaming_enabled;
+	u32				xfer_isr_count;
 };
 
 static inline void set_gadget_data(struct usb_gadget *gadget, void *data)
