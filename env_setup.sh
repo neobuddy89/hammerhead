@@ -20,7 +20,7 @@ else
 fi;
 
 export PARENT_DIR=`readlink -f ${KERNELDIR}/..`;
-export INITRAMFS_SOURCE=`readlink -f ${KERNELDIR}/../hammerhead_initramfs_caf`;
+export INITRAMFS_SOURCE=`readlink -f $PARENT_DIR/../ramdisks/hammerhead_initramfs_caf`;
 export INITRAMFS_TMP=${KERNELDIR}/tmp/initramfs_source;
 
 # check if parallel installed, if not install
@@ -53,13 +53,13 @@ export KBUILD_BUILD_USER="NeoBuddy89";
 export KBUILD_BUILD_HOST="DragonCore";
 
 # system compiler
-# export CROSS_COMPILE=$PARENT_DIR/linaro-toolchain-4.8-2013.12/bin/arm-eabi-;
-# export CROSS_COMPILE=$PARENT_DIR/linaro-toolchain-4.7-2013.12/bin/arm-eabi-;
-# export CROSS_COMPILE=$PARENT_DIR/arm-eabi-4.8/bin/arm-eabi-;
-# export CROSS_COMPILE=$PARENT_DIR/arm-eabi-4.7/bin/arm-eabi-;
+# export CROSS_COMPILE=$PARENT_DIR/../toolchains/linaro-toolchain-4.8-2013.12/bin/arm-eabi-;
+# export CROSS_COMPILE=$PARENT_DIR/../toolchains/linaro-toolchain-4.7-2013.12/bin/arm-eabi-;
+# export CROSS_COMPILE=$PARENT_DIR/../toolchains/arm-eabi-4.8/bin/arm-eabi-;
+# export CROSS_COMPILE=$PARENT_DIR/../toolchains/arm-eabi-4.7/bin/arm-eabi-;
 
 # Use hammerhead optimized toolchain!
-export CROSS_COMPILE=$PARENT_DIR/arm-hammerhead-linux-gnueabi-4.8.4/bin/arm-hammerhead-linux-gnueabi-;
+export CROSS_COMPILE=$PARENT_DIR/../toolchains/arm-hammerhead-linux-gnueabi-4.8.4/bin/arm-hammerhead-linux-gnueabi-;
 
 if [ ! -f ${CROSS_COMPILE}gcc ]; then
 	echo "${bldred}Cannot find GCC compiler ${CROSS_COMPILE}gcc${txtrst}";
