@@ -169,6 +169,8 @@ delete_recursive("/system/lib/modules");
 delete("/system/bin/Dash");
 delete("/system/bin/undash"); 
 delete("/system/bin/Dash-M"); 
+delete("/system/priv-app/NXTweaks.apk"); 
+delete("/system/app/NXTweaks.apk"); 
 
 package_extract_file("boot.img", "/dev/block/platform/msm_sdcc.1/by-name/boot");
 
