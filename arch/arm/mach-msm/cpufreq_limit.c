@@ -59,7 +59,7 @@ static struct cpu_limit {
 	.limiter_enabled = LIMITER_ENABLED,
 	.suspend_max_freq = DEFAULT_SUSPEND_FREQUENCY,
 	.resume_max_freq = DEFAULT_RESUME_FREQUENCY,
-	.suspended = 0,
+	.suspended = 1,
 	.suspend_defer_time = DEFAULT_SUSPEND_DEFER_TIME,
 };
 
@@ -230,6 +230,8 @@ err_out:
 
 static void msm_cpufreq_limit_stop(void)
 {
+	limit.suspended = 1;
+
 	flush_workqueue(limiter_wq);
 
 	cancel_work_sync(&limit.resume_work);
@@ -366,9 +368,12 @@ static ssize_t resume_max_freq_store(struct kobject *kobj,
 
 out:
 	limit.resume_max_freq = val;
-	if (limit.limiter_enabled)
+	if (limit.limiter_enabled) {
+		mutex_lock(&limit.msm_limiter_mutex);
+		limit.suspended = 1;
+		mutex_unlock(&limit.msm_limiter_mutex);
 		queue_work_on(0, limiter_wq, &limit.resume_work);
-
+	}
 	return count;
 }
 
