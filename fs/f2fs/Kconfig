@@ -19,10 +19,10 @@ config F2FS_STAT_FS
 	depends on F2FS_FS && DEBUG_FS
 	default y
 	help
-	  /sys/kernel/debug/f2fs/ contains information about all the partitions
+	  /sys/./debug/f2fs/ contains information about all the partitions
 	  mounted as f2fs. Each file shows the whole f2fs information.
 
-	  /sys/kernel/debug/f2fs/status includes:
+	  /sys/./debug/f2fs/status includes:
 	    - major file system information managed by f2fs currently
 	    - average SIT information about whole segments
 	    - current memory footprint consumed by f2fs.
@@ -33,7 +33,7 @@ config F2FS_FS_XATTR
 	default y
 	help
 	  Extended attributes are name:value pairs associated with inodes by
-	  the kernel or by users (see the attr(5) manual page, or visit
+	  the . or by users (see the attr(5) manual page, or visit
 	  <http://acl.bestbits.at/> for details).
 
 	  If unsure, say N.
