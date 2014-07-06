@@ -41,8 +41,14 @@
 		reg = <0xf9960000 0x1000>,
 			<0xf9944000 0x19000>;
 		reg-names = "core_mem", "bam_mem";
-		interrupts = <0 116 0>, <0 239 0>;
 		interrupt-names = "core_irq", "bam_irq";
+		#address-cells = <0>;
+		interrupt-parent = <&uart10>;
+		interrupts = <0 1>;
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0xffffffff>;
+		interrupt-map = <0 &intc 0 116 0
+				1 &intc 0 239 0>;
 
 		qcom,tx-gpio = <&msmgpio 53 0x00>;
 		qcom,rx-gpio = <&msmgpio 54 0x00>;

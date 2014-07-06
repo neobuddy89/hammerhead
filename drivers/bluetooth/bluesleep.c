@@ -217,7 +217,8 @@ static void hsuart_power(int on)
 		return;
 	if (on) {
 		clk_state = bluesleep_get_uart_state();
-		if(clk_state == MSM_HS_CLK_REQUEST_OFF) {
+		if(clk_state == MSM_HS_CLK_REQUEST_OFF &&
+			!test_bit(BT_TXDATA, &flags)) {
 			bluesleep_uart_work();
 		} else {
 			msm_hs_request_clock_on(bsi->uport);
