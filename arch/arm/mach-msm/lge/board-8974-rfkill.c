@@ -41,6 +41,7 @@
 
 static struct rfkill *bt_rfk;
 static const char bt_name[] = "brcm_Bluetooth_rfkill";
+static bool current_blocked = true;
 
 #ifdef CONFIG_BCM4335BT
 #define BTLOCK_NAME     "btlock"
@@ -176,6 +177,13 @@ static int bluetooth_set_power(void *data, bool blocked)
 #ifdef CONFIG_BCM4335BT
 	int lock_cookie_bt = 'B' | 'T'<<8 | '3'<<16 | '5'<<24;	/* cookie is "BT35" */
 #endif /* CONFIG_BCM4335BT */
+
+	if (current_blocked == blocked) {
+		pr_debug("[BT] keeping current blocked state %d\n", blocked);
+		return 0;
+	}
+
+	current_blocked = blocked;
 
 	printk(KERN_ERR "bluetooth_set_power set blocked=%d", blocked);
 	if (!blocked) {
