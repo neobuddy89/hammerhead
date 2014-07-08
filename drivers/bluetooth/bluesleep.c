@@ -58,10 +58,16 @@
 #include <net/bluetooth/hci_core.h> /* event notifications */
 #include "hci_uart.h"
 
-#define BT_SLEEP_DBG
-#ifndef BT_SLEEP_DBG
-#define BT_DBG(fmt, arg...)
-#endif
+/* BT DMA Request / For UART */
+#ifndef BT_DMA_QOS_REQUEST
+#define BT_DMA_QOS_REQUEST
+
+#ifdef BT_DMA_QOS_REQUEST
+#define REQUESTED              1
+#define NOT_REQUESTED  2
+#endif /* BT_DMA_QOS_REQUEST */
+#endif /* BT_DMA_QOS_REQUEST */
+
 /*
  * Defines
  */
@@ -101,6 +107,10 @@ struct bluesleep_info {
 	unsigned ext_wake;
 	unsigned host_wake_irq;
 	struct uart_port *uport;
+#ifdef BT_DMA_QOS_REQUEST
+	struct pm_qos_request dma_qos;
+	int dma_qos_request;
+#endif /* BT_DMA_QOS_REQUEST */
 	struct wake_lock wake_lock;
 	int irq_polarity;
 	int has_ext_wake;
@@ -246,6 +256,11 @@ void bluesleep_sleep_wakeup(void)
 	if (test_bit(BT_ASLEEP, &flags)) {
 		if (debug_mask & DEBUG_SUSPEND)
 			pr_info("waking up...\n");
+#ifdef BT_DMA_QOS_REQUEST
+		if(bsi->dma_qos_request == REQUESTED) {
+			pm_qos_update_request(&bsi->dma_qos, 19); 
+		}
+#endif /* BT_DMA_QOS_REQUEST */
 		wake_lock(&bsi->wake_lock);
 		/* Start the timer */
 		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
@@ -278,6 +293,11 @@ static void bluesleep_sleep_work(struct work_struct *work)
 			if (debug_mask & DEBUG_SUSPEND)
 				pr_info("going to sleep...\n");
 			set_bit(BT_ASLEEP, &flags);
+#ifdef BT_DMA_QOS_REQUEST
+			if(bsi->dma_qos_request == REQUESTED) {
+				pm_qos_update_request(&bsi->dma_qos, 0x7FFFFFF);
+			}
+#endif /* BT_DMA_QOS_REQUEST */
 			/*Deactivating UART */
 			hsuart_power(0);
 			/* UART clk is not turned off immediately. Release
@@ -530,6 +550,14 @@ static int bluesleep_start(void)
 		pr_info("BT WAKE: set to wake\n");
 	if (bsi->has_ext_wake == 1)
 		gpio_set_value(bsi->ext_wake, 0);
+
+#ifdef BT_DMA_QOS_REQUEST
+	if(bsi->dma_qos_request == NOT_REQUESTED) {
+		bsi->dma_qos_request = REQUESTED;
+		pm_qos_add_request(&bsi->dma_qos, PM_QOS_CPU_DMA_LATENCY, 19);
+	}
+#endif /* BT_DMA_QOS_REQUEST */
+
 	clear_bit(BT_EXT_WAKE, &flags);
 #if BT_ENABLE_IRQ_WAKE
 	retval = enable_irq_wake(bsi->host_wake_irq);
@@ -585,6 +613,14 @@ static void bluesleep_stop(void)
 	if (disable_irq_wake(bsi->host_wake_irq))
 		BT_ERR("Couldn't disable hostwake IRQ wakeup mode");
 #endif
+
+#ifdef BT_DMA_QOS_REQUEST
+	if(bsi->dma_qos_request == REQUESTED) {
+		pm_qos_remove_request(&bsi->dma_qos);
+		bsi->dma_qos_request = NOT_REQUESTED;
+	}
+#endif /* BT_DMA_QOS_REQUEST */
+
 	wake_lock_timeout(&bsi->wake_lock, HZ / 2);
 }
 /**
@@ -867,6 +903,11 @@ static int bluesleep_probe(struct platform_device *pdev)
 	bsi->irq_polarity = POLARITY_LOW;/*low edge (falling edge)*/
 
 	wake_lock_init(&bsi->wake_lock, WAKE_LOCK_SUSPEND, "bluesleep");
+
+#ifdef BT_DMA_QOS_REQUEST
+	bsi->dma_qos_request = NOT_REQUESTED;
+#endif /* BT_DMA_QOS_REQUEST */
+
 	clear_bit(BT_SUSPEND, &flags);
 
 	BT_INFO("host_wake_irq %d, polarity %d",
