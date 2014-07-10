@@ -301,26 +301,6 @@ config CPU_FREQ_GOV_INTELLIDEMAND
 
           If in doubt, say N.
 
-config INTELLI_MAX_ACTIVE_FREQ
-	int "Max Active Freq for Intellidemand"
-	depends on CPU_FREQ_GOV_INTELLIDEMAND
-	default	2265600
-	help
-		Set default max active frequency for intellidemand
-
-config INTELLI_MAX_INACTIVE_FREQ
-	int "Max Inactive Freq for Intellidemand"
-	depends on CPU_FREQ_GOV_INTELLIDEMAND
-	default	1574400
-	help
-		Set default max inactive frequency for intellidemand
-
-config CPUFREQ_LIMIT_MAX_FREQ
-	bool "Limit Max Freq"
-	depends on CPU_FREQ_GOV_INTELLIDEMAND
-	help
-		Limit Max Freq while screen is on for Intellidemand governor
-
 config CPU_FREQ_GOV_SMARTASSH3
         tristate "'smartassH3' cpufreq governor"
         depends on CPU_FREQ
