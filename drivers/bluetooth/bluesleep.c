@@ -125,11 +125,11 @@ DECLARE_DELAYED_WORK(sleep_workqueue, bluesleep_sleep_work);
 DECLARE_DELAYED_WORK(uart_awake_workqueue, bluesleep_uart_awake_work);
 
 /* Macros for handling sleep work */
-#define bluesleep_rx_busy()     schedule_delayed_work(&sleep_workqueue, 0)
-#define bluesleep_tx_busy()     schedule_delayed_work(&sleep_workqueue, 0)
-#define bluesleep_rx_idle()     schedule_delayed_work(&sleep_workqueue, 0)
-#define bluesleep_tx_idle()     schedule_delayed_work(&sleep_workqueue, 0)
-#define bluesleep_uart_work()	schedule_delayed_work(&uart_awake_workqueue, 0)
+#define bluesleep_rx_busy()     schedule_delayed_work(&sleep_workqueue, 1000)
+#define bluesleep_tx_busy()     schedule_delayed_work(&sleep_workqueue, 1000)
+#define bluesleep_rx_idle()     schedule_delayed_work(&sleep_workqueue, 500)
+#define bluesleep_tx_idle()     schedule_delayed_work(&sleep_workqueue, 500)
+#define bluesleep_uart_work()	schedule_delayed_work(&uart_awake_workqueue, 10)
 
 /* 10 second timeout */
 #define TX_TIMER_INTERVAL  10
