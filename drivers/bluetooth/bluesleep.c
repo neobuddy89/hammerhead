@@ -289,7 +289,7 @@ static void bluesleep_sleep_work(struct work_struct *work)
 			return;
 		}
 
-		if (1 == 1 /* msm_hs_tx_empty(bsi->uport) */) {
+		if (msm_hs_tx_empty(bsi->uport)) {
 			if (debug_mask & DEBUG_SUSPEND)
 				pr_info("going to sleep...\n");
 			set_bit(BT_ASLEEP, &flags);
@@ -333,6 +333,7 @@ static void bluesleep_hostwake_task(unsigned long data)
 		pr_info("hostwake line change\n");
 
 	spin_lock(&rw_lock);
+	cancel_delayed_work_sync(&sleep_workqueue);
 	if ((gpio_get_value(bsi->host_wake) == bsi->irq_polarity))
 		bluesleep_rx_busy();
 	else
@@ -484,6 +485,7 @@ static void bluesleep_tx_timer_expire(unsigned long data)
 
 	/* were we silent during the last timeout? */
 	if (!test_bit(BT_TXDATA, &flags)) {
+		cancel_delayed_work_sync(&sleep_workqueue);
 		if (debug_mask & DEBUG_SUSPEND)
 			pr_info("Tx has been idle\n");
 		if (debug_mask & DEBUG_BTWAKE)
@@ -498,8 +500,9 @@ static void bluesleep_tx_timer_expire(unsigned long data)
 		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
 	}
 
-	/* clear the incoming data flag */
-	clear_bit(BT_TXDATA, &flags);
+	/* clear the incoming data flag only if port empty */
+	if (msm_hs_tx_empty(bsi->uport))
+		clear_bit(BT_TXDATA, &flags);
 
 	spin_unlock_irqrestore(&rw_lock, irq_flags);
 }
