@@ -44,6 +44,13 @@ modules.builtin
 /System.map
 /Module.markers
 /Module.symvers
+boot.img
+dt.img
+zImage
+zImage-dtb
+/tmp/*
+/out/*.zip
+/arch/arm/mach-msm/smd_rpc_sym.c
 
 #
 # Debian directory (make deb-pkg)
