@@ -65,6 +65,7 @@
 #include <mach/msm_serial_hs.h>
 #include <mach/msm_bus.h>
 #include <mach/msm_ipc_logging.h>
+
 #include "msm_serial_hs_hwreg.h"
 #define UART_SPS_CONS_PERIPHERAL 0
 #define UART_SPS_PROD_PERIPHERAL 1
@@ -122,6 +123,7 @@ module_param_named(debug_mask, hs_serial_debug_mask,
 		hs_serial_debug_mask = FATAL_LEV; \
 	} \
 } while (0)
+
 /*
  * There are 3 different kind of UART Core available on MSM.
  * High Speed UART (i.e. Legacy HSUART), GSBI based HSUART
@@ -250,7 +252,6 @@ struct msm_hs_port {
 	bool rx_bam_inprogress;
 	wait_queue_head_t bam_disconnect_wait;
 	bool flow_control;
-
 };
 
 static struct of_device_id msm_hs_match_table[] = {
@@ -308,7 +309,8 @@ static int msm_hs_ioctl(struct uart_port *uport, unsigned int cmd,
 	case MSM_GET_UART_CLOCK_STATUS: {
 		/* Return value 0 - UART CLOCK is OFF
 		 * Return value 1 - UART CLOCK is ON */
-		MSM_HS_DBG("%s():GET UART CLOCK STATUS: cmd=%d\n", __func__, cmd);
+		MSM_HS_DBG("%s():GET UART CLOCK STATUS: cmd=%d\n", __func__,
+			 cmd);
 		spin_lock_irqsave(&msm_uport->uport.lock, flags);
 		clk_state = msm_uport->clk_state;
 		spin_unlock_irqrestore(&msm_uport->uport.lock, flags);
@@ -318,7 +320,8 @@ static int msm_hs_ioctl(struct uart_port *uport, unsigned int cmd,
 		break;
 	}
 	default: {
-		MSM_HS_DBG("%s():Unknown cmd specified: cmd=%d\n", __func__, cmd);
+		MSM_HS_DBG("%s():Unknown cmd specified: cmd=%d\n", __func__,
+			   cmd);
 		ret = -ENOIOCTLCMD;
 		break;
 	}
@@ -627,7 +630,7 @@ DEFINE_SIMPLE_ATTRIBUTE(loopback_enable_fops, msm_serial_loopback_enable_get,
  * test scripts.
  * writing 0 disables the internal loopback mode. Default is disabled.
  */
-static void __devinit msm_serial_debugfs_init(struct msm_hs_port *msm_uport,
+static void msm_serial_debugfs_init(struct msm_hs_port *msm_uport,
 					   int id)
 {
 	char node_name[15];
@@ -643,14 +646,14 @@ static void __devinit msm_serial_debugfs_init(struct msm_hs_port *msm_uport,
 							__func__, id);
 }
 
-static int __devexit msm_hs_remove(struct platform_device *pdev)
+static int msm_hs_remove(struct platform_device *pdev)
 {
 
 	struct msm_hs_port *msm_uport;
 	struct device *dev;
 
 	if (pdev->id < 0 || pdev->id >= UARTDM_NR) {
-		MSM_HS_ERR(KERN_ERR "Invalid plaform device ID = %d\n", pdev->id);
+		MSM_HS_ERR("Invalid plaform device ID = %d\n", pdev->id);
 		return -EINVAL;
 	}
 
@@ -1050,7 +1053,6 @@ static void msm_hs_set_termios(struct uart_port *uport,
 	msm_hs_write(uport, UART_DM_IMR, 0);
 
 	MSM_HS_DBG("Entering %s\n", __func__);
-	dump_uart_hs_registers(msm_uport);
 
 	msm_hs_disable_flow_control(uport);
 
@@ -1178,8 +1180,8 @@ static void msm_hs_set_termios(struct uart_port *uport,
 	msm_hs_write(uport, UART_DM_IMR, msm_uport->imr_reg);
 	mb();
 	mutex_unlock(&msm_uport->clk_mutex);
+
 	MSM_HS_DBG("Exit %s\n", __func__);
-	dump_uart_hs_registers(msm_uport);
 	msm_hs_clock_unvote(msm_uport);
 }
 
@@ -1348,7 +1350,6 @@ static void msm_hs_submit_tx_locked(struct uart_port *uport)
 	ret = sps_transfer_one(sps_pipe_handle, src_addr, tx_count,
 				msm_uport, flags);
 
-	dump_uart_hs_registers(msm_uport);
 	MSM_HS_DBG("%s:Enqueue Tx Cmd, ret %d\n", __func__, ret);
 }
 
@@ -1451,9 +1452,9 @@ static void msm_hs_start_rx_locked(struct uart_port *uport)
 		rx->flush = FLUSH_IGNORE;
 		return;
 	}
-	if (buffer_pending && hs_serial_debug_mask)
-		MSM_HS_ERR("Error: rx started in buffer state = %x",
-		       buffer_pending);
+	if (buffer_pending)
+		MSM_HS_ERR("Error: rx started in buffer state =%x",
+			buffer_pending);
 
 	msm_hs_write(uport, UART_DM_CR, RESET_STALE_INT);
 	msm_hs_write(uport, UART_DM_DMRX, UARTDM_RX_BUF_SIZE);
@@ -1488,7 +1489,6 @@ static void msm_hs_start_rx_locked(struct uart_port *uport)
 	msm_uport->rx_bam_inprogress = false;
 	wake_up(&msm_uport->rx.wait);
 	MSM_HS_DBG("%s:Enqueue Rx Cmd\n", __func__);
-	dump_uart_hs_registers(msm_uport);
 }
 
 static void flip_insert_work(struct work_struct *work)
@@ -1502,9 +1502,7 @@ static void flip_insert_work(struct work_struct *work)
 
 	spin_lock_irqsave(&msm_uport->uport.lock, flags);
 	if (msm_uport->rx.buffer_pending == NONE_PENDING) {
-		if (hs_serial_debug_mask)
-			MSM_HS_ERR("Error: No buffer pending in %s",
-			       __func__);
+		MSM_HS_ERR("Error: No buffer pending in %s", __func__);
 		spin_unlock_irqrestore(&msm_uport->uport.lock, flags);
 		return;
 	}
@@ -1536,8 +1534,8 @@ static void flip_insert_work(struct work_struct *work)
 		schedule_delayed_work(&msm_uport->rx.flip_insert_work,
 				      msecs_to_jiffies(RETRY_TIMEOUT));
 	else if ((msm_uport->clk_state == MSM_HS_CLK_ON) &&
-		    (msm_uport->rx.flush <= FLUSH_IGNORE)) {
-			MSM_HS_WARN("Pending buffers cleared,restarting\n");
+		 (msm_uport->rx.flush <= FLUSH_IGNORE)) {
+			MSM_HS_WARN("Pending buffers cleared, restarting");
 			clear_bit(msm_uport->rx.rx_inx,
 				&msm_uport->rx.pending_flag);
 			msm_hs_start_rx_locked(&msm_uport->uport);
@@ -1708,7 +1706,7 @@ static void msm_serial_hs_rx_tlet(unsigned long tlet_ptr)
 	}
 out:
 	if (msm_uport->rx.buffer_pending) {
-		MSM_HS_WARN("tty buffer exhausted.Stalling\n");
+		MSM_HS_WARN("tty buffer exhausted. Stalling\n");
 		schedule_delayed_work(&msm_uport->rx.flip_insert_work
 				      , msecs_to_jiffies(RETRY_TIMEOUT));
 	}
@@ -2348,6 +2346,7 @@ void msm_hs_request_clock_on(struct uart_port *uport)
 }
 EXPORT_SYMBOL(msm_hs_request_clock_on);
 
+#ifdef CONFIG_BT_MSM_SLEEP
 int msm_hs_get_clock_state(struct uart_port *uport)
 {
 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
@@ -2355,6 +2354,7 @@ int msm_hs_get_clock_state(struct uart_port *uport)
 	return (int)msm_uport->clk_state;
 }
 EXPORT_SYMBOL(msm_hs_get_clock_state);
+#endif
 
 static irqreturn_t msm_hs_wakeup_isr(int irq, void *dev)
 {
@@ -2423,9 +2423,8 @@ static void msm_hs_unconfig_uart_gpios(struct uart_port *uport)
 			gpio_free(pdata->uart_cts_gpio);
 		if (gpio_is_valid(pdata->uart_rfr_gpio))
 			gpio_free(pdata->uart_rfr_gpio);
-	} else {
+	} else
 		MSM_HS_ERR("Error:Pdata is NULL.\n");
-	}
 }
 
 /**
@@ -2624,11 +2623,12 @@ static int msm_hs_startup(struct uart_port *uport)
 
 		ret = request_threaded_irq(msm_uport->wakeup.irq, NULL,
 					msm_hs_wakeup_isr,
-					IRQF_TRIGGER_FALLING,
+					IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
 					"msm_hs_wakeup", msm_uport);
 
 		if (unlikely(ret)) {
-			MSM_HS_ERR("%s():Err getting uart wakeup_irq\n", __func__);
+			MSM_HS_ERR("%s():Err getting uart wakeup_irq\n",
+				  __func__);
 			goto free_uart_irq;
 		}
 		disable_irq(msm_uport->wakeup.irq);
@@ -2958,11 +2958,12 @@ static int msm_hs_sps_init(struct msm_hs_port *msm_uport)
 		/* Register UART Peripheral BAM device to SPS driver */
 		rc = sps_register_bam_device(&bam, &bam_handle);
 		if (rc) {
-			MSM_HS_ERR("msm_serial_hs: BAM device register failed\n");
+			MSM_HS_ERR("%s: BAM device register failed\n",
+				  __func__);
 			return rc;
 		}
-		MSM_HS_INFO("msm_serial_hs: BAM device registered. bam_handle=0x%x",
-							msm_uport->bam_handle);
+		MSM_HS_DBG("%s:BAM device registered. bam_handle=0x%x",
+			   __func__, msm_uport->bam_handle);
 	}
 	msm_uport->bam_handle = bam_handle;
 
@@ -3026,7 +3027,7 @@ static int device_id_set_used(int index)
 	return ret;
 }
 
-static int __devinit msm_hs_probe(struct platform_device *pdev)
+static int msm_hs_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct uart_port *uport;
@@ -3296,16 +3297,16 @@ static int __init msm_serial_hs_init(void)
 
 	ret = uart_register_driver(&msm_hs_driver);
 	if (unlikely(ret)) {
-		MSM_HS_WARN("%s failed to load\n", __func__);
+		MSM_HS_ERR("%s failed to load\n", __func__);
 		return ret;
 	}
 	debug_base = debugfs_create_dir("msm_serial_hs", NULL);
 	if (IS_ERR_OR_NULL(debug_base))
-		MSM_HS_INFO("msm_serial_hs: Cannot create debugfs dir\n");
+		pr_info("msm_serial_hs: Cannot create debugfs dir\n");
 
 	ret = platform_driver_register(&msm_serial_hs_platform_driver);
 	if (ret) {
-		MSM_HS_ERR("%s failed to load\n", __FUNCTION__);
+		MSM_HS_ERR("%s failed to load\n", __func__);
 		debugfs_remove_recursive(debug_base);
 		uart_unregister_driver(&msm_hs_driver);
 		return ret;
@@ -3460,6 +3461,7 @@ static int msm_hs_runtime_suspend(struct device *dev)
 	 * During probe, we set uport->line to either pdev->id or userid */
 	if (msm_uport)
 		msm_hs_request_clock_off(&msm_uport->uport);
+
 	return 0;
 }
 
@@ -3472,7 +3474,7 @@ static const struct dev_pm_ops msm_hs_dev_pm_ops = {
 
 static struct platform_driver msm_serial_hs_platform_driver = {
 	.probe	= msm_hs_probe,
-	.remove = __devexit_p(msm_hs_remove),
+	.remove = msm_hs_remove,
 	.driver = {
 		.name = "msm_serial_hs",
 		.pm   = &msm_hs_dev_pm_ops,
