@@ -145,6 +145,7 @@ static void cpufreq_interactive_timer_resched(
 {
 	unsigned long expires;
 	unsigned long flags;
+	u64 now = ktime_to_us(ktime_get());
 
 	spin_lock_irqsave(&pcpu->load_lock, flags);
 	pcpu->time_in_idle =
@@ -155,7 +156,10 @@ static void cpufreq_interactive_timer_resched(
 	expires = jiffies + usecs_to_jiffies(timer_rate);
 	mod_timer_pinned(&pcpu->cpu_timer, expires);
 
-	if (timer_slack_val >= 0 && pcpu->target_freq > pcpu->policy->min) {
+	if (timer_slack_val >= 0 &&
+	    (pcpu->target_freq > pcpu->policy->min ||
+		(pcpu->target_freq == pcpu->policy->min &&
+		 now < boostpulse_endtime))) {
 		expires += usecs_to_jiffies(timer_slack_val);
 		mod_timer_pinned(&pcpu->cpu_slack_timer, expires);
 	}
@@ -172,10 +176,14 @@ static void cpufreq_interactive_timer_start(int cpu)
 	struct cpufreq_interactive_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
 	unsigned long expires = jiffies + usecs_to_jiffies(timer_rate);
 	unsigned long flags;
+	u64 now = ktime_to_us(ktime_get());
 
 	pcpu->cpu_timer.expires = expires;
 	add_timer_on(&pcpu->cpu_timer, cpu);
-	if (timer_slack_val >= 0 && pcpu->target_freq > pcpu->policy->min) {
+	if (timer_slack_val >= 0 &&
+	    (pcpu->target_freq > pcpu->policy->min ||
+		(pcpu->target_freq == pcpu->policy->min &&
+		 now < boostpulse_endtime))) {
 		expires += usecs_to_jiffies(timer_slack_val);
 		pcpu->cpu_slack_timer.expires = expires;
 		add_timer_on(&pcpu->cpu_slack_timer, cpu);
