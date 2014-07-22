@@ -123,7 +123,11 @@ void __init lge_reserve(void)
 	int ret;
 	phys_addr_t start;
 	struct membank* bank;
-
+#endif
+#if defined(CONFIG_ANDROID_PERSISTENT_RAM)
+	lge_add_persist_ram_devices();
+#endif
+#ifdef CONFIG_KEXEC_HARDBOOT
 	if (meminfo.nr_banks < 2) {
 		pr_err("%s: not enough membank\n", __func__);
 		return;
@@ -136,10 +140,6 @@ void __init lge_reserve(void)
 		pr_info("Hardboot page reserved at 0x%X\n", start);
 	else
 		pr_err("Failed to reserve space for hardboot page at 0x%X!\n", start);
-#endif
-
-#if defined(CONFIG_ANDROID_PERSISTENT_RAM)
-	lge_add_persist_ram_devices();
 #endif
 }
 

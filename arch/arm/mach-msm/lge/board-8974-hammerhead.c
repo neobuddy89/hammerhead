@@ -63,8 +63,8 @@ extern int update_preset_lcdc_lut(void);
 
 void __init msm_8974_reserve(void)
 {
-	of_scan_flat_dt(dt_scan_for_memory_reserve, NULL);
 	lge_reserve();
+	of_scan_flat_dt(dt_scan_for_memory_reserve, NULL);
 }
 
 #if defined(CONFIG_LCD_KCAL)
