@@ -289,7 +289,7 @@ static void bluesleep_sleep_work(struct work_struct *work)
 			return;
 		}
 
-		if (msm_hs_tx_empty(bsi->uport)) {
+		if (1==1 /*msm_hs_tx_empty(bsi->uport)*/) {
 			if (debug_mask & DEBUG_SUSPEND)
 				pr_info("going to sleep...\n");
 			set_bit(BT_ASLEEP, &flags);
@@ -298,7 +298,7 @@ static void bluesleep_sleep_work(struct work_struct *work)
 				pm_qos_update_request(&bsi->dma_qos, 0x7FFFFFF);
 			}
 #endif /* BT_DMA_QOS_REQUEST */
-			/*Deactivating UART */
+			/* Deactivating UART */
 			hsuart_power(0);
 			/* UART clk is not turned off immediately. Release
 			 * wakelock after 500 ms.
@@ -500,9 +500,8 @@ static void bluesleep_tx_timer_expire(unsigned long data)
 		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
 	}
 
-	/* clear the incoming data flag only if port empty */
-	if (msm_hs_tx_empty(bsi->uport))
-		clear_bit(BT_TXDATA, &flags);
+	/* clear the incoming data flag */
+	clear_bit(BT_TXDATA, &flags);
 
 	spin_unlock_irqrestore(&rw_lock, irq_flags);
 }
