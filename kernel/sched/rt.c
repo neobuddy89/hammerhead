@@ -824,13 +824,13 @@ static void dump_throttled_rt_tasks(struct rt_rq *rt_rq)
 out:
 #ifdef CONFIG_PANIC_ON_RT_THROTTLING
 	/*
-	 * Use pr_err() in the BUG() case since printk_sched() will
+	 * Use pr_err() in the BUG() case since printk_deferred() will
 	 * not get flushed and deadlock is not a concern.
 	 */
 	pr_err("%s", buf);
 	BUG();
 #else
-	printk_sched("%s", buf);
+	printk_deferred("%s", buf);
 #endif
 }
 
