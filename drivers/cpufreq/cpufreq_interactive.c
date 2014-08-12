@@ -441,6 +441,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 
 	if (!down_read_trylock(&pcpu->enable_sem))
 		return;
+
 	if (!pcpu->governor_enabled)
 		goto exit;
 
@@ -460,18 +461,19 @@ static void cpufreq_interactive_timer(unsigned long data)
 	do_div(cputime_speedadj, delta_time);
 	loadadjfreq = (unsigned int)cputime_speedadj * 100;
 	cpu_load = loadadjfreq / pcpu->target_freq;
+	cpu_load = min(cpu_load, 100);
 	pcpu->prev_load = cpu_load;
 	boosted = boost_val || now < boostpulse_endtime;
 	boosted_freq = max(hispeed_freq, pcpu->policy->min);
 
 	if ((go_hispeed_load && cpu_load >= go_hispeed_load) || boosted) {
 		if (pcpu->target_freq < boosted_freq) {
-			new_freq = boosted_freq;
+			new_freq = max(boosted_freq, pcpu->policy->max * cpu_load / 100);
 		} else {
 			new_freq = choose_freq(pcpu, loadadjfreq, cpu_load);
 
 			if (new_freq > freq_calc_thresh)
-				new_freq = pcpu->policy->max * cpu_load / 100;
+				new_freq = max(new_freq, pcpu->policy->max * cpu_load / 100);
 
 			if (new_freq < boosted_freq)
 				new_freq = boosted_freq;
@@ -480,7 +482,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 		new_freq = choose_freq(pcpu, loadadjfreq, cpu_load);
 
 		if (new_freq > freq_calc_thresh)
-			new_freq = pcpu->policy->max * cpu_load / 100;
+			new_freq = max(new_freq, pcpu->policy->max * cpu_load / 100);
 
 		if (sync_freq && new_freq < sync_freq) {
 
@@ -1426,7 +1428,8 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			cpufreq_frequency_get_table(policy->cpu);
 		if (!hispeed_freq)
 			hispeed_freq = policy->max;
-		freq_calc_thresh = policy->cpuinfo.min_freq;
+		if (!freq_calc_thresh)
+			freq_calc_thresh = policy->cpuinfo.min_freq;
 
 		for_each_cpu(j, policy->cpus) {
 			pcpu = &per_cpu(cpuinfo, j);
