@@ -70,7 +70,9 @@ extern unsigned int lge_get_uart_mode(void);
 extern void lge_set_uart_mode(unsigned int um);
 
 void __init lge_reserve(void);
-void __init lge_add_persistent_device(void);
+#ifdef CONFIG_ANDROID_RAM_CONSOLE
+void __init lge_config_ramconsole(void);
+#endif
 
 #if defined(CONFIG_LCD_KCAL)
 void __init lge_add_lcd_kcal_devices(void);

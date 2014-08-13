@@ -32,7 +32,6 @@
 #endif
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
-#define LGE_RAM_CONSOLE_SIZE (128 * SZ_1K * 2)
 static char bootreason[128] = {0,};
 
 int __init lge_boot_reason(char *s)
@@ -62,101 +61,62 @@ static struct platform_device ram_console_device = {
 };
 #endif
 
-#ifdef CONFIG_PERSISTENT_TRACER
-static struct platform_device persistent_trace_device = {
-	.name = "persistent_trace",
-	.id = -1,
-};
-#endif
-
 #ifdef CONFIG_ANDROID_PERSISTENT_RAM
-#define LGE_PERSISTENT_RAM_SIZE (SZ_1M)
-static struct persistent_ram_descriptor pram_descs[] = {
+static struct persistent_ram_descriptor msm_prd[] __initdata = {
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 	{
 		.name = "ram_console",
-		.size = LGE_RAM_CONSOLE_SIZE,
-	},
-#endif
-#ifdef CONFIG_PERSISTENT_TRACER
-	{
-		.name = "persistent_trace",
-		.size = LGE_RAM_CONSOLE_SIZE,
+		.size = SZ_1M,
 	},
 #endif
 };
 
-static struct persistent_ram persist_ram = {
-	.size = LGE_PERSISTENT_RAM_SIZE,
-	.num_descs = ARRAY_SIZE(pram_descs),
-	.descs = pram_descs,
+static struct persistent_ram msm_pr __initdata = {
+	.descs = msm_prd,
+	.num_descs = ARRAY_SIZE(msm_prd),
+	.start = PLAT_PHYS_OFFSET + SZ_1G + SZ_512M,
+	.size = SZ_1M,
 };
-
-static void __init lge_add_persist_ram_devices(void)
-{
-	int ret;
-	struct membank *bank;
-
-	if (meminfo.nr_banks < 2) {
-		pr_err("%s: not enough membank\n", __func__);
-		return;
-	}
-
-	bank = &meminfo.bank[1];
-	/* first 1MB is used by bootloader */
-	persist_ram.start = bank->start + SZ_1M;
-
-	pr_info("PERSIST RAM CONSOLE START ADDR : 0x%x\n",
-			persist_ram.start);
-
-	ret = persistent_ram_early_init(&persist_ram);
-	if (ret)
-		pr_err("%s: failed to initialize persistent ram\n", __func__);
-}
 #endif /* CONFIG_ANDROID_PERSISTENT_RAM */
 
 void __init lge_reserve(void)
 {
-#ifdef CONFIG_KEXEC_HARDBOOT
-	// Reserve space for hardboot page - just after ram_console,
-	// at the start of second memory bank
 	int ret;
+#ifdef CONFIG_KEXEC_HARDBOOT
 	phys_addr_t start;
-	struct membank* bank;
+#endif
+#if defined(CONFIG_ANDROID_PERSISTENT_RAM)
+	ret = persistent_ram_early_init(&msm_pr);
+	if (!ret)
+		pr_info("RAM Console start address: 0x%x\n", msm_pr.start);
+	else
+		pr_err("%s: Failed to initialize RAM console.\n", __func__);
 
-	if (meminfo.nr_banks < 2) {
-		pr_err("%s: not enough membank\n", __func__);
-		return;
-	}
-
-	bank = &meminfo.bank[1];
-	start = bank->start + SZ_1M + LGE_PERSISTENT_RAM_SIZE;
+#endif
+#ifdef CONFIG_KEXEC_HARDBOOT
+	/* Reserve space for hardboot page - just after ram_console */
+	start = PLAT_PHYS_OFFSET + SZ_1G + SZ_512M + SZ_1M;
 	ret = memblock_remove(start, SZ_1M);
 	if(!ret)
-		pr_info("Hardboot page reserved at 0x%X\n", start);
+		pr_info("Hardboot page reserved at 0x%x\n", start);
 	else
-		pr_err("Failed to reserve space for hardboot page at 0x%X!\n", start);
-#endif
-
-#if defined(CONFIG_ANDROID_PERSISTENT_RAM)
-	lge_add_persist_ram_devices();
+		pr_err("%s: Failed to reserve space for hardboot page.\n", __func__);
 #endif
 }
 
-void __init lge_add_persistent_device(void)
+void __init lge_config_ramconsole(void)
 {
-#ifdef CONFIG_ANDROID_RAM_CONSOLE
-	platform_device_register(&ram_console_device);
+	int ret;
+
+	ret = platform_device_register(&ram_console_device);
+	if (ret) {
+		pr_err("%s: Unable to add RAM console device", __func__);
+		return;
+	}
 #ifdef CONFIG_LGE_HANDLE_PANIC
 	/* write ram console addr to imem */
-	lge_set_ram_console_addr(persist_ram.start,
-			LGE_RAM_CONSOLE_SIZE);
+	lge_set_ram_console_addr(msm_pr.start, SZ_1M);
 #endif
-#endif
-#ifdef CONFIG_PERSISTENT_TRACER
-	platform_device_register(&persistent_trace_device);
-#endif
-
 }
 
 /* setting whether uart console is enalbed or disabled */
