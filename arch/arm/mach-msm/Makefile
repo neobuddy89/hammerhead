@@ -24,7 +24,7 @@ endif
 
 obj-y += acpuclock.o
 obj-$(CONFIG_MSM_CORTEX_A7) += clock-a7.o
-obj-$(CONFIG_HW_PERF_EVENTS) += perf_trace_counters.o
+# obj-$(CONFIG_HW_PERF_EVENTS) += perf_trace_counters.o
 CFLAGS_perf_trace_counters.o += -Iarch/arm/mach-msm
 obj-$(CONFIG_ARCH_MSM_KRAIT) += clock-krait.o
 obj-$(CONFIG_ARCH_MSM7X27) += acpuclock-7627.o acpuclock-8625q.o clock-pll.o
@@ -35,12 +35,12 @@ endif
 obj-$(CONFIG_ARCH_MSM_KRAIT) += msm-krait-l2-accessors.o
 obj-$(CONFIG_ARCH_MSM_KRAIT) += krait-scm.o
 ifdef CONFIG_HW_PERF_EVENTS
-obj-$(CONFIG_ARCH_MSM_KRAIT) += perf_event_msm_krait_l2.o
+# obj-$(CONFIG_ARCH_MSM_KRAIT) += perf_event_msm_krait_l2.o
 obj-$(CONFIG_ARCH_MSM7X27A) += perf_event_msm_pl310.o
 obj-$(CONFIG_ARCH_MSM9625) += perf_event_msm_pl310.o
 obj-$(CONFIG_ARCH_MSM8625) += perf_event_msm_pl310.o
 obj-$(CONFIG_ARCH_MSM9615) += perf_event_msm_pl310.o
-obj-$(CONFIG_DEBUG_FS) += perf_debug.o
+# obj-$(CONFIG_DEBUG_FS) += perf_debug.o
 endif
 
 ifndef CONFIG_MSM_SMP
