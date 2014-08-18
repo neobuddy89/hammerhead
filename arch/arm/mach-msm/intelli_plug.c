@@ -335,7 +335,7 @@ static void intelli_plug_suspend(struct work_struct *work)
 
 static void __ref intelli_plug_resume(struct work_struct *work)
 {
-	int cpu, required_reschedule = 0;
+	int cpu, required_reschedule = 0, required_wakeup = 0;
 
 	if (atomic_read(&intelli_plug_active) == 0)
 		return;
@@ -346,6 +346,7 @@ static void __ref intelli_plug_resume(struct work_struct *work)
 		min_cpus_online = min_cpus_online_res;
 		max_cpus_online = max_cpus_online_res;
 		mutex_unlock(&intelli_plug_mutex);
+		required_wakeup = 1;
 		/* Initiate hotplug work if it was cancelled */
 		if (max_cpus_online_susp <= 1 ||
 			full_mode_profile == 3) {
@@ -354,12 +355,18 @@ static void __ref intelli_plug_resume(struct work_struct *work)
 		}
 	}
 
-	/* Fire up all CPUs */
-	for_each_cpu_not(cpu, cpu_online_mask) {
-		if (cpu == 0)
-			continue;
-		cpu_up(cpu);
-		apply_down_lock(cpu);
+#ifdef CONFIG_LCD_NOTIFY
+	if (wakeup_boost || required_wakeup) {
+#else
+	if (required_wakeup) {
+#endif
+		/* Fire up all CPUs */
+		for_each_cpu_not(cpu, cpu_online_mask) {
+			if (cpu == 0)
+				continue;
+			cpu_up(cpu);
+			apply_down_lock(cpu);
+		}
 	}
 
 	/* Resume hotplug workqueue if required */
