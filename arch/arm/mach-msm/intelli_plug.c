@@ -66,6 +66,7 @@ static struct delayed_work intelli_plug_work;
 static struct work_struct up_down_work;
 static struct workqueue_struct *intelliplug_wq;
 #if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+static struct workqueue_struct *susp_wq;
 static struct delayed_work suspend_work;
 static struct work_struct resume_work;
 static struct mutex intelli_plug_mutex;
@@ -384,7 +385,7 @@ static void __intelli_plug_suspend(struct early_suspend *handler)
 #endif
 {
 	INIT_DELAYED_WORK(&suspend_work, intelli_plug_suspend);
-	schedule_delayed_work_on(0, &suspend_work, 
+	queue_delayed_work_on(0, susp_wq, &suspend_work, 
 				 msecs_to_jiffies(suspend_defer_time * 1000)); 
 }
 
@@ -396,8 +397,9 @@ static void __intelli_plug_resume(struct power_suspend *handler)
 static void __intelli_plug_resume(struct early_suspend *handler)
 #endif
 {
+	flush_workqueue(susp_wq);
 	cancel_delayed_work_sync(&suspend_work);
-	schedule_work_on(0, &resume_work);
+	queue_work_on(0, susp_wq, &resume_work);
 }
 
 #ifdef CONFIG_LCD_NOTIFY
@@ -541,6 +543,17 @@ static int __ref intelli_plug_start(void)
 		goto err_out;
 	}
 
+#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+	susp_wq =
+	    alloc_workqueue("intelli_susp_wq", WQ_FREEZABLE, 0);
+	if (!susp_wq) {
+		pr_err("%s: Failed to allocate suspend workqueue\n",
+		       INTELLI_PLUG);
+		ret = -ENOMEM;
+		goto err_out;
+	}
+#endif
+
 #ifdef CONFIG_LCD_NOTIFY
 	notif.notifier_call = lcd_notifier_callback;
         if (lcd_register_client(&notif) != 0) {
@@ -567,15 +580,14 @@ static int __ref intelli_plug_start(void)
 
 	INIT_WORK(&up_down_work, cpu_up_down_work);
 	INIT_DELAYED_WORK(&intelli_plug_work, intelli_plug_work_fn);
-#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
-	INIT_DELAYED_WORK(&suspend_work, intelli_plug_suspend);
-	INIT_WORK(&resume_work, intelli_plug_resume);
-#endif
-
 	for_each_possible_cpu(cpu) {
 		dl = &per_cpu(lock_info, cpu);
 		INIT_DELAYED_WORK(&dl->lock_rem, remove_down_lock);
 	}
+#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+	INIT_DELAYED_WORK(&suspend_work, intelli_plug_suspend);
+	INIT_WORK(&resume_work, intelli_plug_resume);
+#endif
 
 	/* Fire up all CPUs */
 	for_each_cpu_not(cpu, cpu_online_mask) {
@@ -601,16 +613,17 @@ static void intelli_plug_stop(void)
 	int cpu;
 	struct down_lock *dl;
 
+#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+	flush_workqueue(susp_wq);
+	cancel_work_sync(&resume_work);
+	cancel_delayed_work_sync(&suspend_work);
+#endif
 	for_each_possible_cpu(cpu) {
 		dl = &per_cpu(lock_info, cpu);
 		cancel_delayed_work_sync(&dl->lock_rem);
 	}
-#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
-	cancel_work_sync(&resume_work);
-	cancel_delayed_work_sync(&suspend_work);
-#endif
-	cancel_work_sync(&up_down_work);
 	flush_workqueue(intelliplug_wq);
+	cancel_work_sync(&up_down_work);
 	cancel_delayed_work_sync(&intelli_plug_work);
 #if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
 	mutex_destroy(&intelli_plug_mutex);
@@ -625,6 +638,9 @@ static void intelli_plug_stop(void)
 #endif
 
 	input_unregister_handler(&intelli_plug_input_handler);
+#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+	destroy_workqueue(susp_wq);
+#endif
 	destroy_workqueue(intelliplug_wq);
 }
 
