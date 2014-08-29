@@ -3050,4 +3050,12 @@ config MSM_HOTPLUG
 	help
 	  The MSM hotplug driver controls on-/offlining of additional cores based
 	  on current cpu load.
+
+config MSM_LIMITER
+	bool "MSM Frequency Limiter Driver"
+	depends on (LCD_NOTIFY || POWERSUSPEND || HAS_EARLYSUSPEND)
+	default y
+	help
+	  The MSM Frequency Limiter Driver controls max frequency limit for each CPU
+	  to desired value on suspend/resume
 endif
