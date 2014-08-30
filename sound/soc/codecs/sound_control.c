@@ -19,6 +19,7 @@
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 #include <linux/kallsyms.h>
+#include <linux/mfd/wcd9xxx/core.h>
 #include <linux/mfd/wcd9xxx/wcd9320_registers.h>
 
 #define SOUND_CONTROL_MAJOR_VERSION	3
@@ -36,91 +37,155 @@ int taiko_write(struct snd_soc_codec *codec, unsigned int reg,
 		unsigned int value);
 
 
-static unsigned int cached_regs[] = {6, 6, 0, 0, 0, 0, 0, 0, 0, 0,
-			    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			    0 };
-
-static unsigned int *cache_select(unsigned int reg)
-{
-	unsigned int *out = NULL;
-
-        switch (reg) {
-                case TAIKO_A_RX_HPH_L_GAIN:
-			out = &cached_regs[0];
-			break;
-                case TAIKO_A_RX_HPH_R_GAIN:
-			out = &cached_regs[1];
-			break;
-                case TAIKO_A_CDC_RX1_VOL_CTL_B2_CTL:
-			out = &cached_regs[4];
-			break;
-                case TAIKO_A_CDC_RX2_VOL_CTL_B2_CTL:
-			out = &cached_regs[5];
-			break;
-                case TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL:
-			out = &cached_regs[6];
-			break;
-                case TAIKO_A_CDC_RX4_VOL_CTL_B2_CTL:
-			out = &cached_regs[7];
-			break;
-                case TAIKO_A_CDC_RX5_VOL_CTL_B2_CTL:
-			out = &cached_regs[8];
-			break;
-                case TAIKO_A_CDC_RX6_VOL_CTL_B2_CTL:
-			out = &cached_regs[9];
-			break;
-                case TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL:
-			out = &cached_regs[10];
-			break;
-                case TAIKO_A_CDC_TX1_VOL_CTL_GAIN:
-			out = &cached_regs[11];
-			break;
-                case TAIKO_A_CDC_TX2_VOL_CTL_GAIN:
-			out = &cached_regs[12];
-			break;
-                case TAIKO_A_CDC_TX3_VOL_CTL_GAIN:
-			out = &cached_regs[13];
-			break;
-                case TAIKO_A_CDC_TX4_VOL_CTL_GAIN:
-			out = &cached_regs[14];
-			break;
-                case TAIKO_A_CDC_TX5_VOL_CTL_GAIN:
-			out = &cached_regs[15];
-			break;
-                case TAIKO_A_CDC_TX6_VOL_CTL_GAIN:
-			out = &cached_regs[16];
-			break;
-                case TAIKO_A_CDC_TX7_VOL_CTL_GAIN:
-			out = &cached_regs[17];
-			break;
-                case TAIKO_A_CDC_TX8_VOL_CTL_GAIN:
-			out = &cached_regs[18];
-			break;
-                case TAIKO_A_CDC_TX9_VOL_CTL_GAIN:
-			out = &cached_regs[19];
-			break;
-                case TAIKO_A_CDC_TX10_VOL_CTL_GAIN:
-			out = &cached_regs[20];
-			break;
-        }
-	return out;
-}
+static int cached_regs[] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+			    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+			    -1};
 
 void snd_hax_cache_write(unsigned int reg, unsigned int value)
 {
-	unsigned int *tmp = cache_select(reg);
-
-	if (tmp != NULL)
-		*tmp = value;
+	switch (reg) {
+		case TAIKO_A_RX_HPH_L_GAIN:
+			cached_regs[0] = value;
+			break;
+		case TAIKO_A_RX_HPH_R_GAIN:
+			cached_regs[1] = value;
+			break;
+		case TAIKO_A_RX_HPH_L_STATUS:
+			cached_regs[2] = value;
+			break;
+		case TAIKO_A_RX_HPH_R_STATUS:
+			cached_regs[3] = value;
+			break;
+		case TAIKO_A_CDC_RX1_VOL_CTL_B2_CTL:
+			cached_regs[4] = value;
+			break;
+		case TAIKO_A_CDC_RX2_VOL_CTL_B2_CTL:
+			cached_regs[5] = value;
+			break;
+		case TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL:
+			cached_regs[6] = value;
+			break;
+		case TAIKO_A_CDC_RX4_VOL_CTL_B2_CTL:
+			cached_regs[7] = value;
+			break;
+		case TAIKO_A_CDC_RX5_VOL_CTL_B2_CTL:
+			cached_regs[8] = value;
+			break;
+		case TAIKO_A_CDC_RX6_VOL_CTL_B2_CTL:
+			cached_regs[9] = value;
+			break;
+		case TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL:
+			cached_regs[10] = value;
+			break;
+		case TAIKO_A_CDC_TX1_VOL_CTL_GAIN:
+			cached_regs[11] = value;
+			break;
+		case TAIKO_A_CDC_TX2_VOL_CTL_GAIN:
+			cached_regs[12] = value;
+			break;
+		case TAIKO_A_CDC_TX3_VOL_CTL_GAIN:
+			cached_regs[13] = value;
+			break;
+		case TAIKO_A_CDC_TX4_VOL_CTL_GAIN:
+			cached_regs[14] = value;
+			break;
+		case TAIKO_A_CDC_TX5_VOL_CTL_GAIN:
+			cached_regs[15] = value;
+			break;
+		case TAIKO_A_CDC_TX6_VOL_CTL_GAIN:
+			cached_regs[16] = value;
+			break;
+		case TAIKO_A_CDC_TX7_VOL_CTL_GAIN:
+			cached_regs[17] = value;
+			break;
+		case TAIKO_A_CDC_TX8_VOL_CTL_GAIN:
+			cached_regs[18] = value;
+			break;
+		case TAIKO_A_CDC_TX9_VOL_CTL_GAIN:
+			cached_regs[19] = value;
+			break;
+		case TAIKO_A_CDC_TX10_VOL_CTL_GAIN:
+			cached_regs[20] = value;
+			break;
+		default:
+			break;
+        }
+	return;
 }
 EXPORT_SYMBOL(snd_hax_cache_write);
 
-unsigned int snd_hax_cache_read(unsigned int reg)
+int snd_hax_cache_read(unsigned int reg)
 {
-	if (cache_select(reg) != NULL)
-		return *cache_select(reg);
-	else
-		return -1;
+	int out = -1;
+
+	switch (reg) {
+		case TAIKO_A_RX_HPH_L_GAIN:
+			out = cached_regs[0];
+			break;
+		case TAIKO_A_RX_HPH_R_GAIN:
+			out = cached_regs[1];
+			break;
+		case TAIKO_A_RX_HPH_L_STATUS:
+			out = cached_regs[2];
+			break;
+		case TAIKO_A_RX_HPH_R_STATUS:
+			out = cached_regs[3];
+			break;
+		case TAIKO_A_CDC_RX1_VOL_CTL_B2_CTL:
+			out = cached_regs[4];
+			break;
+		case TAIKO_A_CDC_RX2_VOL_CTL_B2_CTL:
+			out = cached_regs[5];
+			break;
+		case TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL:
+			out = cached_regs[6];
+			break;
+		case TAIKO_A_CDC_RX4_VOL_CTL_B2_CTL:
+			out = cached_regs[7];
+			break;
+		case TAIKO_A_CDC_RX5_VOL_CTL_B2_CTL:
+			out = cached_regs[8];
+			break;
+		case TAIKO_A_CDC_RX6_VOL_CTL_B2_CTL:
+			out = cached_regs[9];
+			break;
+		case TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL:
+			out = cached_regs[10];
+			break;
+		case TAIKO_A_CDC_TX1_VOL_CTL_GAIN:
+			out = cached_regs[11];
+			break;
+		case TAIKO_A_CDC_TX2_VOL_CTL_GAIN:
+			out = cached_regs[12];
+			break;
+		case TAIKO_A_CDC_TX3_VOL_CTL_GAIN:
+			out = cached_regs[13];
+			break;
+		case TAIKO_A_CDC_TX4_VOL_CTL_GAIN:
+			out = cached_regs[14];
+			break;
+		case TAIKO_A_CDC_TX5_VOL_CTL_GAIN:
+			out = cached_regs[15];
+			break;
+		case TAIKO_A_CDC_TX6_VOL_CTL_GAIN:
+			out = cached_regs[16];
+			break;
+		case TAIKO_A_CDC_TX7_VOL_CTL_GAIN:
+			out = cached_regs[17];
+			break;
+		case TAIKO_A_CDC_TX8_VOL_CTL_GAIN:
+			out = cached_regs[18];
+			break;
+		case TAIKO_A_CDC_TX9_VOL_CTL_GAIN:
+			out = cached_regs[19];
+			break;
+		case TAIKO_A_CDC_TX10_VOL_CTL_GAIN:
+			out = cached_regs[20];
+			break;
+		default:
+			break;
+        }
+	return out;
 }
 EXPORT_SYMBOL(snd_hax_cache_read);
 
