@@ -122,7 +122,7 @@ int wcd9xxx_reg_read(
 }
 EXPORT_SYMBOL(wcd9xxx_reg_read);
 
-#ifdef CONFIG_SOUND_CONTROL_HAX_3_GPL
+#ifdef CONFIG_SOUND_CONTROL
 static int __wcd9xxx_reg_read_safe(struct wcd9xxx *wcd9xxx,
 				   unsigned short reg)
 {

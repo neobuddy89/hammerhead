@@ -195,7 +195,7 @@ struct wcd9xxx {
 	const struct wcd9xxx_codec_type *codec_type;
 };
 
-#ifdef CONFIG_SOUND_CONTROL_HAX_3_GPL
+#ifdef CONFIG_SOUND_CONTROL
 int wcd9xxx_reg_read_safe(struct wcd9xxx_core_resource *core_res,
 			  unsigned short reg);
 #endif
