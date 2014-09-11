@@ -784,7 +784,6 @@ static ssize_t store_min_cpus_online(struct kobject *kobj,
 	return count;
 }
 
-#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
 static ssize_t store_max_cpus_online(struct kobject *kobj,
 				     struct kobj_attribute *attr,
 				     const char *buf, size_t count)
@@ -804,6 +803,7 @@ static ssize_t store_max_cpus_online(struct kobject *kobj,
 	return count;
 }
 
+#if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
 static ssize_t store_max_cpus_online_susp(struct kobject *kobj,
 				     struct kobj_attribute *attr,
 				     const char *buf, size_t count)
