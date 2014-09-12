@@ -154,6 +154,8 @@ delete("/system/etc/init.d/remountCM_fullext4");
 delete("/system/etc/init.d/02logdelete1");
 delete("/system/etc/init.d/04Governor_tweaks");
 delete("/system/etc/init.d/entropy");
+delete("/system/addon.d/51-vomertweaks.sh");
+delete("/system/etc/init.d/01VomerTweaks");
 delete("/data/Fly-On/S08_rngd.log");
 delete("/data/Fly-On/rngd_state");
 delete("/system/etc/init.d/S98system_tweak");
