@@ -25,6 +25,10 @@
 #include "io.h"
 #include "xhci.h"
 
+#ifdef CONFIG_FORCE_FAST_CHARGE
+#include <linux/fastchg.h>
+#endif
+
 #define VBUS_REG_CHECK_DELAY	(msecs_to_jiffies(1000))
 #define MAX_INVALID_CHRGR_RETRY 3
 static int max_chgr_retry_count = MAX_INVALID_CHRGR_RETRY;
@@ -574,7 +578,7 @@ static int dwc3_otg_set_power(struct usb_phy *phy, unsigned mA)
 
 	ac_psy = power_supply_get_by_name("ac");
 
-	if (dotg->charger->chg_type == DWC3_DCP_CHARGER && ac_psy) {
+	if ((dotg->charger->chg_type == DWC3_DCP_CHARGER || dotg->charger->chg_type == DWC3_PROPRIETARY_CHARGER) && ac_psy) {
 		pr_info("%s: override dotg->psy to ac->psy\n", __func__);
 		saved_usb_psy = dotg->psy;
 		dotg->psy = ac_psy;
@@ -807,8 +811,17 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 					work = 1;
 					break;
 				case DWC3_SDP_CHARGER:
+#ifdef CONFIG_FORCE_FAST_CHARGE
+					if (force_fast_charge > 0)
+						dwc3_otg_set_power(phy,
+							DWC3_IDEV_CHG_MAX);
+					else
+						dwc3_otg_set_power(phy,
+							DWC3_IDEV_CHG_MIN);
+#else
 					dwc3_otg_set_power(phy,
 							DWC3_IDEV_CHG_MIN);
+#endif
 					if (!slimport_is_connected()) {
 						dwc3_otg_start_peripheral(
 								&dotg->otg,

@@ -3072,4 +3072,13 @@ config MSM_CPU_VOLTAGE_CONTROL
 	default y
 	help
 	  This enables userspace CPU Voltage Control.
+
+config FORCE_FAST_CHARGE
+	bool "Force AC charge mode at will"
+	depends on BQ24192_CHARGER
+	default y
+	help
+	  A simple sysfs interface to force adapters that
+	  are detected as USB to charge as AC.
+
 endif
