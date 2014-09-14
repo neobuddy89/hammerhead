@@ -59,13 +59,8 @@ extern int update_preset_lcdc_lut(void);
 
 void __init msm_8974_reserve(void)
 {
-	of_scan_flat_dt(dt_scan_for_memory_reserve, NULL);
 	lge_reserve();
-}
-
-static void __init msm8974_early_memory(void)
-{
-	of_scan_flat_dt(dt_scan_for_memory_hole, NULL);
+	of_scan_flat_dt(dt_scan_for_memory_reserve, NULL);
 }
 
 #if defined(CONFIG_LCD_KCAL)
@@ -215,11 +210,6 @@ void __init msm8974_init(void)
 	msm8974_add_drivers();
 }
 
-void __init msm8974_init_very_early(void)
-{
-	msm8974_early_memory();
-}
-
 static const char *msm8974_dt_match[] __initconst = {
 	"qcom,msm8974",
 	NULL
@@ -233,7 +223,6 @@ DT_MACHINE_START(MSM8974_DT, "Qualcomm MSM 8974 HAMMERHEAD (Flattened Device Tre
 	.timer = &msm_dt_timer,
 	.dt_compat = msm8974_dt_match,
 	.reserve = msm_8974_reserve,
-	.init_very_early = msm8974_init_very_early,
 	.restart = msm_restart,
 	.smp = &msm8974_smp_ops,
 MACHINE_END
