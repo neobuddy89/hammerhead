@@ -27,7 +27,6 @@
 #include <linux/types.h>
 #include <linux/elf-em.h>
 #include <linux/ptrace.h>
-#include <linux/uidgid.h>
 
 /* The netlink messages for the audit system is divided into blocks:
  * 1000 - 1099 are for commanding the audit system
@@ -442,8 +441,6 @@ struct audit_krule {
 struct audit_field {
 	u32				type;
 	u32				val;
-	kuid_t				uid;
-	kgid_t				gid;
 	u32				op;
 	char				*lsm_str;
 	void				*lsm_rule;
