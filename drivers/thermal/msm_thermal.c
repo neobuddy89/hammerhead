@@ -1560,19 +1560,28 @@ static struct kernel_param_ops module_ops = {
 
 module_param_cb(enabled, &module_ops, &enabled, 0644);
 MODULE_PARM_DESC(enabled, "enforce thermal limit on cpu");
-module_param_named(limit_temp, msm_thermal_info.limit_temp_degC,
-		   uint, 0644);
-module_param_named(temp_hysteresis, msm_thermal_info.temp_hysteresis_degC,
-		   uint, 0644);
+module_param_named(poll_ms, msm_thermal_info.poll_ms, uint, 0664);
+module_param_named(limit_temp_degC, msm_thermal_info.limit_temp_degC,
+			int, 0664);
+module_param_named(temp_hysteresis_degC,
+			msm_thermal_info.temp_hysteresis_degC,
+			int, 0664);
 module_param_named(freq_step, msm_thermal_info.bootup_freq_step, uint, 0644);
-module_param_named(core_limit_temp, msm_thermal_info.core_limit_temp_degC,
+module_param_named(core_limit_temp_degC, msm_thermal_info.core_limit_temp_degC,
 		   uint, 0644);
-module_param_named(core_temp_hysteresis,
-		   msm_thermal_info.core_temp_hysteresis_degC, uint, 0644);
+module_param_named(core_temp_hysteresis_degC,
+			msm_thermal_info.core_temp_hysteresis_degC,
+			int, 0664);
 module_param_named(freq_control_mask,
 		   msm_thermal_info.bootup_freq_control_mask, uint, 0644);
+module_param_named(core_control_mask, msm_thermal_info.core_control_mask,
+			uint, 0664);
 module_param_named(hotplug_temp, msm_thermal_info.hotplug_temp_degC,
 		   uint, 0644);
+
+module_param_named(thermal_limit_high, limit_idx_high, int, 0664);
+module_param_named(thermal_limit_low, limit_idx_low, int, 0664);
+
 module_param_named(hotplug_temp_hysteresis,
 		   msm_thermal_info.hotplug_temp_hysteresis_degC, uint, 0644);
 module_param_named(psm_temp,
