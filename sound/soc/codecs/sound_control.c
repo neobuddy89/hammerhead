@@ -119,6 +119,7 @@ int snd_hax_cache_read(unsigned int reg)
 	int out = -1;
 
 	switch (reg) {
+#ifndef CONFIG_MACH_LGE
 		/* Headphone PowerAmp Gain */
 		case TAIKO_A_RX_HPH_L_GAIN:
 			out = cached_regs[0];
@@ -132,6 +133,7 @@ int snd_hax_cache_read(unsigned int reg)
 		case TAIKO_A_RX_HPH_R_STATUS:
 			out = cached_regs[3];
 			break;
+#endif
 		/* Headphone Digital Gain */
 		case TAIKO_A_CDC_RX1_VOL_CTL_B2_CTL:
 			out = cached_regs[4];
