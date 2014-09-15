@@ -29,14 +29,6 @@ echo "${bldcya}***** Generating Ramdisk *****${txtrst}"
 echo "0" > $TMPFILE;
 
 (
-
-	# check xml-config for "NXTweaks"-app
-	XML2CHECK="${INITRAMFS_SOURCE}/res/customconfig/customconfig.xml";
-	xmllint --noout $XML2CHECK;
-	if [ $? == 1 ]; then
-        	echo "${bldred} WARNING for NXTweaks XML: $XML2CHECK ${txtrst}";
-	fi;
-
 	# remove previous initramfs files
 	if [ -d $INITRAMFS_TMP ]; then
 		echo "${bldcya}***** Removing old temp initramfs_source *****${txtrst}";

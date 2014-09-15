@@ -173,6 +173,7 @@ delete("/system/bin/undash");
 delete("/system/bin/Dash-M"); 
 delete("/system/priv-app/NXTweaks.apk"); 
 delete("/system/app/NXTweaks.apk"); 
+delete("/data/app/NXTweaks.apk"); 
 
 package_extract_dir("system", "/system");
 set_metadata("/system/etc/audio_policy.conf", "uid", 0, "gid", 0, "mode", 0755, "capabilities", 0x0, "selabel", "u:object_r:system_file:s0");
