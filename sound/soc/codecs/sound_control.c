@@ -119,6 +119,8 @@ int snd_hax_cache_read(unsigned int reg)
 	int out = -1;
 
 	switch (reg) {
+#ifndef CONFIG_MACH_LGE
+		/* Headphone PowerAmp Gain */
 		case TAIKO_A_RX_HPH_L_GAIN:
 			out = cached_regs[0];
 			break;
@@ -131,12 +133,15 @@ int snd_hax_cache_read(unsigned int reg)
 		case TAIKO_A_RX_HPH_R_STATUS:
 			out = cached_regs[3];
 			break;
+#endif
+		/* Headphone Digital Gain */
 		case TAIKO_A_CDC_RX1_VOL_CTL_B2_CTL:
 			out = cached_regs[4];
 			break;
 		case TAIKO_A_CDC_RX2_VOL_CTL_B2_CTL:
 			out = cached_regs[5];
 			break;
+#ifndef CONFIG_MACH_LGE
 		case TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL:
 			out = cached_regs[6];
 			break;
@@ -149,9 +154,12 @@ int snd_hax_cache_read(unsigned int reg)
 		case TAIKO_A_CDC_RX6_VOL_CTL_B2_CTL:
 			out = cached_regs[9];
 			break;
+#endif
+		/* Speaker Gain */
 		case TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL:
 			out = cached_regs[10];
 			break;
+#ifndef CONFIG_MACH_LGE
 		case TAIKO_A_CDC_TX1_VOL_CTL_GAIN:
 			out = cached_regs[11];
 			break;
@@ -167,12 +175,16 @@ int snd_hax_cache_read(unsigned int reg)
 		case TAIKO_A_CDC_TX5_VOL_CTL_GAIN:
 			out = cached_regs[15];
 			break;
+#endif
+		/* Cam Mic Gain */
 		case TAIKO_A_CDC_TX6_VOL_CTL_GAIN:
 			out = cached_regs[16];
 			break;
+		/* Mic Gain */
 		case TAIKO_A_CDC_TX7_VOL_CTL_GAIN:
 			out = cached_regs[17];
 			break;
+#ifndef CONFIG_MACH_LGE
 		case TAIKO_A_CDC_TX8_VOL_CTL_GAIN:
 			out = cached_regs[18];
 			break;
@@ -182,6 +194,7 @@ int snd_hax_cache_read(unsigned int reg)
 		case TAIKO_A_CDC_TX10_VOL_CTL_GAIN:
 			out = cached_regs[20];
 			break;
+#endif
 		default:
 			break;
         }
