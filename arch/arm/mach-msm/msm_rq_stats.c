@@ -44,9 +44,6 @@ struct cpu_load_data {
 	u64 prev_cpu_idle;
 	u64 prev_cpu_wall;
 	u64 prev_cpu_iowait;
-#ifdef CONFIG_ALUCARD_HOTPLUG
-	unsigned int cpu_load;
-#endif
 	unsigned int avg_load_maxfreq;
 	unsigned int samples;
 	unsigned int window_size;
@@ -107,10 +104,6 @@ static int update_average_load(unsigned int freq, unsigned int cpu)
 	/* Calculate the scaled load across CPU */
 	load_at_max_freq = (cur_load * policy.cur) / policy.max;
 
-#ifdef CONFIG_ALUCARD_HOTPLUG
-	pcpu->cpu_load = cur_load;
-#endif
-
 	if (!pcpu->avg_load_maxfreq) {
 		/* This is the first sample in this window*/
 		pcpu->avg_load_maxfreq = load_at_max_freq;
@@ -148,15 +141,6 @@ static unsigned int report_load_at_max_freq(void)
 	}
 	return total_load;
 }
-
-
-#ifdef CONFIG_ALUCARD_HOTPLUG
-unsigned int report_cpu_load(unsigned int cpu)
-{
-	struct cpu_load_data *pcpu = &per_cpu(cpuload, cpu);
-	return pcpu->cpu_load;
-}
-#endif
 
 static int cpufreq_transition_handler(struct notifier_block *nb,
 			unsigned long val, void *data)
@@ -197,9 +181,6 @@ static int cpu_hotplug_handler(struct notifier_block *nb,
 			this_cpu->cur_freq = cpufreq_quick_get(cpu);
 	case CPU_ONLINE_FROZEN:
 		this_cpu->avg_load_maxfreq = 0;
-#ifdef CONFIG_ALUCARD_HOTPLUG
-		this_cpu->cpu_load = 0;
-#endif
 	}
 
 	return NOTIFY_OK;

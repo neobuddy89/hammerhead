@@ -427,7 +427,6 @@ obj-$(CONFIG_WALL_CLK_SYSFS) += wallclk_sysfs.o
 obj-$(CONFIG_PERFMAP) += perfmap.o
 
 obj-$(CONFIG_MSM_HOTPLUG) += msm_hotplug.o
-obj-$(CONFIG_ALUCARD_HOTPLUG) += alucard_hotplug.o
 obj-$(CONFIG_INTELLI_HOTPLUG) += intelli_plug.o
 obj-$(CONFIG_MSM_LIMITER) += msm_limiter.o
 
