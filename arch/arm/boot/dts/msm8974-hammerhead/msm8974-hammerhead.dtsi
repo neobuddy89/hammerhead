@@ -88,6 +88,9 @@
 		compatible = "qcom,msm8974-audio-taiko";
 		qcom,model = "msm8974-taiko-mtp-snd-card";
 		qcom,mbhc-gpio-level-insert = <0>;
+		qcom,mbhc-audio-jack-type = "6-pole-jack";
+
+		qcom,mbhc-disabled = <1>;
 
 		qcom,hdmi-audio-rx;
 
@@ -713,9 +716,9 @@
 &rpm_bus {
 	rpm-regulator-ldoa22 {
 		pm8941_l22: regulator-l22 {
-			regulator-min-microvolt = <2700000>;
+			regulator-min-microvolt = <3000000>;
 			regulator-max-microvolt = <3300000>;
-			qcom,init-voltage = <2700000>;
+			qcom,init-voltage = <3100000>;
 		};
 	};
 
