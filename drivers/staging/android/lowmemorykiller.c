@@ -55,7 +55,7 @@
 #endif
 
 static uint32_t lowmem_debug_level = 1;
-static uint32_t lowmem_auto_oom = 1;
+static uint32_t lowmem_auto_oom = 0;
 static short lowmem_adj[6] = {
 	0,
 	1,
@@ -554,7 +554,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 
 static struct shrinker lowmem_shrinker = {
 	.shrink = lowmem_shrink,
-	.seeks = DEFAULT_SEEKS * 16
+	.seeks = 32
 };
 
 static void low_mem_power_suspend(struct power_suspend *handler)
@@ -650,7 +650,7 @@ static void lowmem_autodetect_oom_adj_values(void)
 		oom_adj = lowmem_adj[i];
 		oom_score_adj = lowmem_oom_adj_to_oom_score_adj(oom_adj);
 		lowmem_adj[i] = oom_score_adj;
-		lowmem_print(1, "oom_adj %d => oom_score_adj %d\n",
+		lowmem_print(1, "oom_adj %hd => oom_score_adj %d\n",
 			     oom_adj, oom_score_adj);
 	}
 }
