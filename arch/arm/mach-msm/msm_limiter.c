@@ -26,7 +26,7 @@
 #endif
 
 #define MSM_CPUFREQ_LIMIT_MAJOR		2
-#define MSM_CPUFREQ_LIMIT_MINOR		0
+#define MSM_CPUFREQ_LIMIT_MINOR		1
 
 #define MSM_LIMIT			"msm_limiter"
 #define LIMITER_ENABLED			0
@@ -71,10 +71,8 @@ static struct workqueue_struct *limiter_wq;
 
 static void update_cpu_max_freq(uint32_t max_freq)
 {
-	int ret = 0;
 	unsigned int cpu;
 	struct cpufreq_policy *policy;
-	struct cpufreq_policy n_policy;
 
 	for_each_possible_cpu(cpu) {
 		policy = cpufreq_cpu_get(cpu);
@@ -93,43 +91,26 @@ static void update_cpu_max_freq(uint32_t max_freq)
 			cpufreq_cpu_put(policy);
 		}
 	}
-
-	if (!debug)
-		return;
-
-	/* Check if we really updated max freq */
-	ret = cpufreq_get_policy(&n_policy, 0);
-	if (!ret)
-		pr_info("%s: Current Max Freq is %uMHz\n", MSM_LIMIT, n_policy.max / 1000);
 }
 
 static void update_cpu_min_freq(struct work_struct *work)
 {
-	int ret = 0;
 	unsigned int cpu;
 	struct cpufreq_policy *policy;
-	struct cpufreq_policy n_policy;
 	uint32_t max_freq = min(limit.suspend_max_freq, limit.resume_max_freq);
+
+	if (limit.suspend_min_freq > max_freq)
+		return;
 
 	for_each_possible_cpu(cpu) {
 		policy = cpufreq_cpu_get(cpu);
 		if (policy) {
-			if (limit.suspend_min_freq <= max_freq) {
-				policy->user_policy.min = limit.suspend_min_freq;
-				policy->min = limit.suspend_min_freq;
-				dprintk("%s: Set %uMHz for CPU%u\n", MSM_LIMIT, limit.suspend_min_freq / 1000, cpu);
-			}
+			policy->user_policy.min = limit.suspend_min_freq;
+			policy->min = limit.suspend_min_freq;
+			dprintk("%s: Set %uMHz for CPU%u\n", MSM_LIMIT, limit.suspend_min_freq / 1000, cpu);
 			cpufreq_cpu_put(policy);
 		}
 	}
-
-	if (!debug)
-		return;
-
-	/* Check if we really updated max freq */
-	ret = cpufreq_get_policy(&n_policy, 0);
-	if (!ret)
-		pr_info("%s: Current Min Freq is %uMHz\n", MSM_LIMIT, n_policy.min / 1000);
 }
 
 static void msm_limit_suspend(struct work_struct *work)
