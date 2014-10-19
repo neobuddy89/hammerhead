@@ -65,7 +65,7 @@ export KBUILD_BUILD_HOST="DragonCore";
 # export CROSS_COMPILE=$PARENT_DIR/../toolchains/arm-eabi-4.7/bin/arm-eabi-;
 
 # Use hammerhead optimized toolchain!
-export CROSS_COMPILE=$PARENT_DIR/../toolchains/arm-hammerhead-linux-gnueabi-4.8.4/bin/arm-hammerhead-linux-gnueabi-;
+export CROSS_COMPILE=$PARENT_DIR/../toolchains/arm-hammerhead-linux-gnueabi-4.9.2/bin/arm-hammerhead-linux-gnueabi-;
 
 if [ ! -f ${CROSS_COMPILE}gcc ]; then
 	echo "${bldred}Cannot find GCC compiler ${CROSS_COMPILE}gcc${txtrst}";
