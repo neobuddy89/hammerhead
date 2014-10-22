@@ -80,6 +80,7 @@ else
 	rm -f $KERNELDIR/arch/arm/boot/zImage-dtb >> /dev/null;
 	rm -f $KERNELDIR/arch/arm/boot/Image >> /dev/null;
 	rm -f $KERNELDIR/arch/arm/mach-msm/smd_rpc_sym.c >> /dev/null;
+	rm -f $KERNELDIR/arch/arm/crypto/aesbs-core.S >> /dev/null;
 	rm -f $KERNELDIR/zImage >> /dev/null;
 	rm -f $KERNELDIR/zImage-dtb >> /dev/null;
 	rm -f $KERNELDIR/boot.img >> /dev/null;
@@ -87,8 +88,8 @@ else
 fi;
 
 . $KERNELDIR/.config
-GETVER=`grep 'Chaos-Kernel_v.*' $KERNELDIR/.config | sed 's/.*_.//g' | sed 's/".*//g'`
-echo "${bldcya}Building => Chaos Kernel ${GETVER} ${txtrst}";
+GETVER=`grep 'Hybrid_v.*' $KERNELDIR/.config | sed 's/.*_.//g' | sed 's/".*//g'`
+echo "${bldcya}Building => Hybrid ${GETVER} ${txtrst}";
 
 # wait for the successful ramdisk generation
 while [ $(cat ${TMPFILE}) == 0 ]; do
@@ -113,10 +114,10 @@ if [ -e $KERNELDIR/arch/arm/boot/zImage-dtb ]; then
 	./utilities/mkbootimg --kernel zImage-dtb --cmdline 'console=ttyHSL0,115200,n8 androidboot.hardware=hammerhead user_debug=31 maxcpus=2 msm_watchdog_v2.enable=1' --base 0x00000000 --pagesize 2048 --ramdisk_offset 0x02900000 --tags_offset 0x02700000 --ramdisk ramdisk.gz --output boot.img
 
 	rm $KERNELDIR/out/boot.img >> /dev/null;
-	rm $KERNELDIR/out/Chaos-Kernel_* >> /dev/null;
+	rm $KERNELDIR/out/Hybrid_* >> /dev/null;
 	cp $KERNELDIR/boot.img /$KERNELDIR/out/
 	cd $KERNELDIR/out/
-	zip -r Chaos-Kernel_v${GETVER}-`date +"[%m-%d]-[%H-%M]"`.zip .
+	zip -r Hybrid_v${GETVER}-`date +"[%m-%d]-[%H-%M]"`.zip .
 	echo "${bldcya}***** Ready to Roar *****${txtrst}";
 	# finished? get elapsed time
 	res2=$(date +%s.%N)
@@ -133,7 +134,7 @@ if [ -e $KERNELDIR/arch/arm/boot/zImage-dtb ]; then
 			sleep 1;
 			ADB_STATUS=`adb get-state` >> /dev/null;
 		done
-		adb push $KERNELDIR/out/Chaos-Kernel_v*.zip /sdcard/
+		adb push $KERNELDIR/out/Hybrid_v*.zip /sdcard/
 		while [ "$reboot_recovery" != "y" ] && [ "$reboot_recovery" != "n" ] && [ "$reboot_recovery" != "Y" ] && [ "$reboot_recovery" != "N" ]
 		do
 			read -p "${bldblu}Reboot to recovery?${txtrst}${blu} (y/n)${txtrst}" reboot_recovery;

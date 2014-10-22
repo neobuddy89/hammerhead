@@ -16,6 +16,7 @@ rm -f $KERNELDIR/arch/arm/boot/*.dtb >> /dev/null;
 rm -f $KERNELDIR/arch/arm/boot/*.cmd >> /dev/null;
 rm -f $KERNELDIR/arch/arm/boot/zImage-dtb >> /dev/null;
 rm -f $KERNELDIR/arch/arm/mach-msm/smd_rpc_sym.c >> /dev/null;
+rm -f $KERNELDIR/arch/arm/crypto/aesbs-core.S >> /dev/null;
 rm -f $KERNELDIR/r*.cpio >> /dev/null;
 rm -f $KERNELDIR/ramdisk.gz >> /dev/null;
 rm -rf $KERNELDIR/include/generated >> /dev/null;
