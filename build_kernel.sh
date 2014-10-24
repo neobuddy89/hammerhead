@@ -79,8 +79,6 @@ else
 	rm -f $KERNELDIR/arch/arm/boot/zImage >> /dev/null;
 	rm -f $KERNELDIR/arch/arm/boot/zImage-dtb >> /dev/null;
 	rm -f $KERNELDIR/arch/arm/boot/Image >> /dev/null;
-	rm -f $KERNELDIR/arch/arm/mach-msm/smd_rpc_sym.c >> /dev/null;
-	rm -f $KERNELDIR/arch/arm/crypto/aesbs-core.S >> /dev/null;
 	rm -f $KERNELDIR/zImage >> /dev/null;
 	rm -f $KERNELDIR/zImage-dtb >> /dev/null;
 	rm -f $KERNELDIR/boot.img >> /dev/null;
