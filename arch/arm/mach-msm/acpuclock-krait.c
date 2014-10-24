@@ -441,7 +441,9 @@ static int calculate_vdd_dig(const struct acpu_level *tgt)
 }
 
 static bool enable_boost = true;
+static int pvs_number = 0;
 module_param_named(boost, enable_boost, bool, S_IRUGO | S_IWUSR);
+module_param(pvs_number, int, 0644);
 
 static int calculate_vdd_core(const struct acpu_level *tgt)
 {
@@ -1146,6 +1148,7 @@ void __init get_krait_bin_format_b(void __iomem *base, struct bin_info *bin)
 		break;
 	}
 	bin->speed_valid = true;
+	pvs_number = bin->pvs;
 
 	/* Check PVS_BLOW_STATUS */
 	pte_efuse = readl_relaxed(base + 0x4);
