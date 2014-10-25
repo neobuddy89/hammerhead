@@ -2,7 +2,8 @@ ui_print("Let the Chaos Begin!");
 
 ui_print("This is a AOSP Kernel. Will not boot on CAF ROMs.");
 
-mount("ext4", "EMMC", "/dev/block/platform/msm_sdcc.1/by-name/system", "/system");
+run_program("/sbin/busybox", "mount", "/system");
+run_program("/sbin/busybox", "mount", "/data");
 
 delete("/system/etc/init.d/04kernel");
 delete("/system/etc/init.d/08mount");
@@ -166,8 +167,19 @@ delete("/data/local/tmp/elementalx-kernel.log");
 delete_recursive("/system/etc/cron.d");
 delete_recursive("/system/lib/modules");
 delete("/system/bin/Dash");
-delete("/system/bin/undash"); 
-delete("/system/bin/Dash-M"); 
+delete("/system/bin/undash");
+delete("/system/bin/Dash-M");
+delete("system/etc/init.d/00_frandom");
+delete("system/etc/init.d/01_ftrim");
+delete("system/etc/init.d/02_disableboost");
+delete("system/etc/init.d/04_sweep2sleep");
+delete("system/etc/init.d/05_dirtyratio");
+delete("system/etc/init.d/99linaro");
+delete("system/etc/init.d/00_uber");
+delete("system/etc/init.d/01_fstrim");
+delete("system/etc/init.d/02_cpuboost");
+delete("system/etc/init.d/03_cputweaks");
+
 
 package_extract_dir("system", "/system");
 symlink("busybox", "/system/xbin/[", "/system/xbin/[[",
@@ -255,4 +267,7 @@ symlink("busybox", "/system/xbin/[", "/system/xbin/[[",
 
 package_extract_file("boot.img", "/dev/block/platform/msm_sdcc.1/by-name/boot");
 
-show_progress(0.100000, 0);
+set_progress(1.000000);
+unmount("/data");
+unmount("/system");
+
