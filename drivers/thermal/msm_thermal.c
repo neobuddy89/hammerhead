@@ -580,6 +580,7 @@ fail:
 	return ret;
 }
 
+#if 0
 /* 1:enable, 0:disable */
 static int vdd_restriction_apply_all(int en)
 {
@@ -621,6 +622,7 @@ static int vdd_restriction_apply_all(int en)
 		return -EFAULT;
 	return ret;
 }
+#endif
 
 static int msm_thermal_get_freq_table(void)
 {
@@ -835,6 +837,7 @@ static __ref int do_hotplug(void *data)
 }
 #endif
 
+#if 0
 static int do_vdd_restriction(void)
 {
 	struct tsens_device tsens_dev;
@@ -883,6 +886,7 @@ exit:
 	mutex_unlock(&vdd_rstr_mutex);
 	return ret;
 }
+#endif
 
 static int do_psm(void)
 {
@@ -996,7 +1000,9 @@ static void __ref check_temp(struct work_struct *work)
 	}
 
 	do_core_control(temp);
+#if 0
 	do_vdd_restriction();
+#endif
 	do_psm();
 	do_freq_control(temp);
 
@@ -1389,6 +1395,34 @@ static struct kernel_param_ops module_ops = {
 
 module_param_cb(enabled, &module_ops, &enabled, 0644);
 MODULE_PARM_DESC(enabled, "enforce thermal limit on cpu");
+module_param_named(poll_ms, msm_thermal_info.poll_ms, uint, 0664);
+module_param_named(limit_temp_degC, msm_thermal_info.limit_temp_degC,
+			int, 0664);
+module_param_named(temp_hysteresis_degC,
+			msm_thermal_info.temp_hysteresis_degC,
+			int, 0664);
+module_param_named(freq_step, msm_thermal_info.bootup_freq_step, uint, 0644);
+module_param_named(core_limit_temp_degC, msm_thermal_info.core_limit_temp_degC,
+		   uint, 0644);
+module_param_named(core_temp_hysteresis_degC,
+			msm_thermal_info.core_temp_hysteresis_degC,
+			int, 0664);
+module_param_named(freq_control_mask,
+		   msm_thermal_info.bootup_freq_control_mask, uint, 0644);
+module_param_named(core_control_mask, msm_thermal_info.core_control_mask,
+			uint, 0664);
+module_param_named(hotplug_temp, msm_thermal_info.hotplug_temp_degC,
+		   uint, 0644);
+
+module_param_named(thermal_limit_high, limit_idx_high, int, 0664);
+module_param_named(thermal_limit_low, limit_idx_low, int, 0664);
+
+module_param_named(hotplug_temp_hysteresis,
+		   msm_thermal_info.hotplug_temp_hysteresis_degC, uint, 0644);
+module_param_named(psm_temp,
+		   msm_thermal_info.psm_temp_degC, uint, 0644);
+module_param_named(psm_temp_hysteresis,
+		   msm_thermal_info.psm_temp_hyst_degC, uint, 0644);
 
 static ssize_t show_cc_enabled(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
@@ -1607,6 +1641,18 @@ int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
 	int ret = 0;
 	uint32_t cpu;
 
+	for_each_possible_cpu(cpu) {
+		cpus[cpu].cpu = cpu;
+		cpus[cpu].offline = 0;
+		cpus[cpu].user_offline = 0;
+		cpus[cpu].hotplug_thresh_clear = false;
+		cpus[cpu].max_freq = false;
+		cpus[cpu].user_max_freq = UINT_MAX;
+		cpus[cpu].user_min_freq = 0;
+		cpus[cpu].limited_max_freq = UINT_MAX;
+		cpus[cpu].limited_min_freq = 0;
+		cpus[cpu].freq_thresh_clear = false;
+	}
 	BUG_ON(!pdata);
 	tsens_get_max_sensor_num(&max_tsens_num);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
@@ -1617,21 +1663,17 @@ int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
 		return -EINVAL;
 
 	enabled = 1;
-	for_each_possible_cpu(cpu) {
-		cpus[cpu].limited_max_freq = UINT_MAX;
-		cpus[cpu].limited_min_freq = 0;
-	}
 	ret = cpufreq_register_notifier(&msm_thermal_cpufreq_notifier,
 			CPUFREQ_POLICY_NOTIFIER);
 	if (ret)
 		pr_err("%s: cannot register cpufreq notifier\n",
 			KBUILD_MODNAME);
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
-	schedule_delayed_work(&check_temp_work, 0);
+	schedule_delayed_work(&check_temp_work, msecs_to_jiffies(10000));
 
 	if (num_possible_cpus() > 1) {
 		mutex_lock(&core_control_mutex);
-		core_control_enabled = 1;
+		core_control_enabled = 0; // Disable core control
 		register_cpu_notifier(&msm_thermal_cpu_notifier);
 		update_offline_cores(cpus_offlined);
 		mutex_unlock(&core_control_mutex);
@@ -2082,17 +2124,13 @@ static int probe_cc(struct device_node *node, struct msm_thermal_data *data,
 
 	key = "qcom,cpu-sensors";
 	cpu_cnt = of_property_count_strings(node, key);
-	if (cpu_cnt != num_possible_cpus()) {
-		pr_err("%s: Wrong number of cpu\n", KBUILD_MODNAME);
+	if (cpu_cnt < num_possible_cpus()) {
+		pr_err("%s: Wrong number of cpu sensors\n", KBUILD_MODNAME);
 		ret = -EINVAL;
 		goto hotplug_node_fail;
 	}
 
 	for_each_possible_cpu(cpu) {
-		cpus[cpu].cpu = cpu;
-		cpus[cpu].offline = 0;
-		cpus[cpu].user_offline = 0;
-		cpus[cpu].hotplug_thresh_clear = false;
 		ret = of_property_read_string_index(node, key, cpu,
 				&cpus[cpu].sensor_type);
 		if (ret)
@@ -2126,7 +2164,6 @@ static int probe_freq_mitigation(struct device_node *node,
 {
 	char *key = NULL;
 	int ret = 0;
-	uint32_t cpu;
 
 	key = "qcom,freq-mitigation-temp";
 	ret = of_property_read_u32(node, key, &data->freq_mitig_temp_degc);
@@ -2150,14 +2187,6 @@ static int probe_freq_mitigation(struct device_node *node,
 		goto PROBE_FREQ_EXIT;
 
 	freq_mitigation_enabled = 1;
-	for_each_possible_cpu(cpu) {
-		cpus[cpu].max_freq = false;
-		cpus[cpu].user_max_freq = UINT_MAX;
-		cpus[cpu].user_min_freq = 0;
-		cpus[cpu].limited_max_freq = UINT_MAX;
-		cpus[cpu].limited_min_freq = 0;
-		cpus[cpu].freq_thresh_clear = false;
-	}
 
 PROBE_FREQ_EXIT:
 	if (ret) {
