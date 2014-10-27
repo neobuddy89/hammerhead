@@ -23,6 +23,7 @@ rm -rf $KERNELDIR/include/generated >> /dev/null;
 rm -rf $KERNELDIR/arch/*/include/generated >> /dev/null;
 rm -f $KERNELDIR/zImage >> /dev/null;
 rm -f $KERNELDIR/out/zImage >> /dev/null;
+rm -f $KERNELDIR/zImage-dtb >> /dev/null;
 rm -f $KERNELDIR/out/boot.img >> /dev/null;
 rm -f $KERNELDIR/boot.img >> /dev/null;
 rm -f $KERNELDIR/dt.img >> /dev/null;
