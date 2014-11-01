@@ -160,7 +160,6 @@ void kgsl_pwrctrl_pwrlevel_change(struct kgsl_device *device,
 
 	trace_kgsl_pwrlevel(device, pwr->active_pwrlevel, pwrlevel->gpu_freq);
 }
-
 EXPORT_SYMBOL(kgsl_pwrctrl_pwrlevel_change);
 
 static int kgsl_pwrctrl_thermal_pwrlevel_store(struct device *dev,
@@ -184,8 +183,8 @@ static int kgsl_pwrctrl_thermal_pwrlevel_store(struct device *dev,
 
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
-	if (level > pwr->num_pwrlevels - 2)
-		level = pwr->num_pwrlevels - 2;
+	if (level > pwr->num_pwrlevels - 1)
+		level = pwr->num_pwrlevels - 1;
 
 	pwr->thermal_pwrlevel = level;
 
@@ -288,8 +287,8 @@ static int kgsl_pwrctrl_min_pwrlevel_store(struct device *dev,
 		return ret;
 
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
-	if (level > pwr->num_pwrlevels - 2)
-		level = pwr->num_pwrlevels - 2;
+	if (level > pwr->num_pwrlevels - 1)
+		level = pwr->num_pwrlevels - 1;
 
 	/* You can't set a minimum power level lower than the maximum */
 	if (level < pwr->max_pwrlevel)
@@ -374,7 +373,7 @@ static int kgsl_pwrctrl_max_gpuclk_store(struct device *dev,
 	if (level < 0)
 		goto done;
 
-	pwr->thermal_pwrlevel = (unsigned int) level;
+	pwr->thermal_pwrlevel = level;
 
 	/*
 	 * if the thermal limit is lower than the current setting,
@@ -984,13 +983,13 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 	pwr->num_pwrlevels = pdata->num_levels;
 
 	/* Initialize the user and thermal clock constraints */
-
+	/* Initialize with extremes else devfreq will prevent OC */
 	pwr->max_pwrlevel = 0;
-	pwr->min_pwrlevel = pdata->num_levels - 2;
+	pwr->min_pwrlevel = pdata->num_levels - 1;
 	pwr->thermal_pwrlevel = 0;
 
 	pwr->active_pwrlevel = pdata->init_level;
-	pwr->default_pwrlevel = pdata->init_level;
+	pwr->default_pwrlevel = pwr->min_pwrlevel;
 	pwr->init_pwrlevel = pdata->init_level;
 	pwr->wakeup_maxpwrlevel = 0;
 	for (i = 0; i < pdata->num_levels; i++) {
