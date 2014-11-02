@@ -265,6 +265,8 @@ symlink("busybox", "/system/xbin/[", "/system/xbin/[[",
         "/system/xbin/xz", "/system/xbin/xzcat", "/system/xbin/yes",
         "/system/xbin/zcat");
 
+set_metadata("/system/etc/audio_policy.conf", "uid", 0, "gid", 0, "mode", 0755, "capabilities", 0x0, "selabel", "u:object_r:system_file:s0");
+
 package_extract_file("boot.img", "/dev/block/platform/msm_sdcc.1/by-name/boot");
 
 set_progress(1.000000);
