@@ -55,6 +55,7 @@ static struct cpu_limit {
 	struct work_struct resume_work;
 	struct mutex resume_suspend_mutex;
 	struct mutex msm_limiter_mutex[4];
+	char *scaling_governor[4];
 #ifdef CONFIG_LCD_NOTIFY
 	struct notifier_block notif;
 #endif
@@ -431,6 +432,29 @@ static ssize_t show_suspend_min_freq_##cpu(		\
 	return sprintf(buf, "%u\n",			\
 		limit.suspend_min_freq[cpu]);		\
 }							\
+static ssize_t store_scaling_governor_##cpu(		\
+ struct kobject *kobj,					\
+ struct kobj_attribute *attr,				\
+ const char *buf, size_t count)				\
+{							\
+	int ret;					\
+	char val[16];					\
+	ret = sscanf(buf, "%s\n", val);			\
+	if (ret != 1)					\
+		return -EINVAL;				\
+	ret = cpufreq_set_gov(val, cpu);		\
+	if (!ret)					\
+		limit.scaling_governor[cpu] = 		\
+			cpufreq_get_gov(cpu);		\
+	return count;					\
+}							\
+static ssize_t show_scaling_governor_##cpu(		\
+ struct kobject *kobj,					\
+ struct kobj_attribute *attr, char *buf)		\
+{							\
+	return sprintf(buf, "%s\n",			\
+	limit.scaling_governor[cpu]);			\
+}							\
 static struct kobj_attribute resume_max_freq_##cpu =	\
 	__ATTR(resume_max_freq_##cpu, 0666,		\
 		show_resume_max_freq_##cpu,		\
@@ -439,6 +463,10 @@ static struct kobj_attribute suspend_min_freq_##cpu =	\
 	__ATTR(suspend_min_freq_##cpu, 0666,		\
 		show_suspend_min_freq_##cpu,		\
 		store_suspend_min_freq_##cpu);		\
+static struct kobj_attribute scaling_governor_##cpu =	\
+	__ATTR(scaling_governor_##cpu, 0666,		\
+		show_scaling_governor_##cpu,		\
+		store_scaling_governor_##cpu);		\
 
 multi_cpu(0);
 multi_cpu(1);
@@ -485,6 +513,10 @@ static struct attribute *msm_cpufreq_limit_attrs[] =
 		&suspend_min_freq_1.attr,
 		&suspend_min_freq_2.attr,
 		&suspend_min_freq_3.attr,
+		&scaling_governor_0.attr,
+		&scaling_governor_1.attr,
+		&scaling_governor_2.attr,
+		&scaling_governor_3.attr,
 		&msm_cpufreq_limit_version_attribute.attr,
 		NULL,
 	};
@@ -498,6 +530,7 @@ static struct kobject *msm_cpufreq_limit_kobj;
 
 static int msm_cpufreq_limit_init(void)
 {
+	unsigned int cpu;
 	int ret;
 
 	msm_cpufreq_limit_kobj =
@@ -515,6 +548,10 @@ static int msm_cpufreq_limit_init(void)
 		pr_err("%s msm_cpufreq_limit_kobj create failed!\n",
 			__func__);
 		goto err_dev;
+	}
+
+	for_each_possible_cpu(cpu) {
+		limit.scaling_governor[cpu] = cpufreq_get_gov(cpu);
 	}
 
 	if (limit.limiter_enabled)
