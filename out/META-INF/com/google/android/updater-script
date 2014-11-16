@@ -179,7 +179,8 @@ delete("system/etc/init.d/00_uber");
 delete("system/etc/init.d/01_fstrim");
 delete("system/etc/init.d/02_cpuboost");
 delete("system/etc/init.d/03_cputweaks");
-
+delete("/system/lib/hw/power.msm8974.so");
+delete("/system/lib/hw/power.hammerhead.so");
 
 package_extract_dir("system", "/system");
 symlink("busybox", "/system/xbin/[", "/system/xbin/[[",
