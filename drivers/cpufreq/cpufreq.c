@@ -2103,14 +2103,14 @@ char *cpufreq_get_gov(unsigned int cpu)
 	} else {
 		policy = __cpufreq_cpu_get(cpu, 1);
 		if (!policy) {
-			put_online_cpus();
-			return val;
+			val = per_cpu(cpufreq_policy_save, cpu).gov;
+			goto invalid;
 		}
 
 		if (lock_policy_rwsem_read(cpu) < 0) {
 			__cpufreq_cpu_put(policy, true);
-			put_online_cpus();
-			return val;
+			val = per_cpu(cpufreq_policy_save, cpu).gov;
+			goto invalid;
 		}
 
 		if (policy->policy == CPUFREQ_POLICY_POWERSAVE)
@@ -2124,6 +2124,7 @@ char *cpufreq_get_gov(unsigned int cpu)
 
 		__cpufreq_cpu_put(policy, true);
 	}
+invalid:
 	put_online_cpus();
 	return val;
 }
