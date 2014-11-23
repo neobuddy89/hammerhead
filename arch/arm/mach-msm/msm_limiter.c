@@ -442,6 +442,13 @@ static ssize_t show_live_min_freq_##cpu(		\
 	return sprintf(buf, "%u\n",			\
 	cpufreq_get_min(cpu));				\
 }							\
+static ssize_t show_live_cur_freq_##cpu(		\
+ struct kobject *kobj,					\
+ struct kobj_attribute *attr, char *buf)		\
+{							\
+	return sprintf(buf, "%u\n",			\
+	cpufreq_quick_get(cpu));			\
+}							\
 static struct kobj_attribute resume_max_freq_##cpu =	\
 	__ATTR(resume_max_freq_##cpu, 0666,		\
 		show_resume_max_freq_##cpu,		\
@@ -462,6 +469,9 @@ static struct kobj_attribute live_min_freq_##cpu =	\
 	__ATTR(live_min_freq_##cpu, 0666,		\
 		show_live_min_freq_##cpu,		\
 		store_suspend_min_freq_##cpu);		\
+static struct kobj_attribute live_cur_freq_##cpu =	\
+	__ATTR(live_cur_freq_##cpu, 0666,		\
+		show_live_cur_freq_##cpu, NULL);	\
 
 multi_cpu(0);
 multi_cpu(1);
@@ -520,6 +530,10 @@ static struct attribute *msm_cpufreq_limit_attrs[] =
 		&live_min_freq_1.attr,
 		&live_min_freq_2.attr,
 		&live_min_freq_3.attr,
+		&live_cur_freq_0.attr,
+		&live_cur_freq_1.attr,
+		&live_cur_freq_2.attr,
+		&live_cur_freq_3.attr,
 		&msm_cpufreq_limit_version_attribute.attr,
 		NULL,
 	};
