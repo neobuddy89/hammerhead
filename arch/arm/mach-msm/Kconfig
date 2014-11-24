@@ -3082,6 +3082,14 @@ config INTELLI_HOTPLUG
 	  An intelligent cpu hotplug driver for
 	  Low Latency Frequency Transition capable processors.
 
+config BRICKED_HOTPLUG
+	bool "Enable kernel based mpdecision"
+	depends on MSM_SMP
+	default n
+	help
+	  This enables kernel based multi core control.
+	  (up/down hotplug based on load)
+
 config MSM_LIMITER
 	bool "MSM Frequency Limiter Driver"
 	depends on (LCD_NOTIFY || POWERSUSPEND || HAS_EARLYSUSPEND)
