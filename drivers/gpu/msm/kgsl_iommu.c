@@ -785,9 +785,12 @@ static int kgsl_attach_pagetable_iommu_domain(struct kgsl_mmu *mmu)
 			 * If there is a 2nd default pagetable then priv domain
 			 * is attached to this pagetable
 			 */
-			if (mmu->priv_bank_table &&
-				(KGSL_IOMMU_CONTEXT_PRIV == j))
-				iommu_pt = mmu->priv_bank_table->priv;
+			if (KGSL_IOMMU_CONTEXT_PRIV == j) {
+				if (mmu->priv_bank_table)
+					iommu_pt = mmu->priv_bank_table->priv;
+				else
+					continue;
+			}
 			if (!iommu_unit->dev[j].attached) {
 				ret = iommu_attach_device(iommu_pt->domain,
 							iommu_unit->dev[j].dev);
@@ -1572,6 +1575,8 @@ static void kgsl_iommu_lock_rb_in_tlb(struct kgsl_mmu *mmu)
 	for (i = 0; i < iommu->unit_count; i++) {
 		struct kgsl_iommu_unit *iommu_unit = &iommu->iommu_units[i];
 		for (j = 0; j < iommu_unit->dev_count; j++) {
+			if (!iommu_unit->dev[j].attached)
+				continue;
 			tlblkcr = 0;
 			if (cpu_is_msm8960())
 				tlblkcr |= ((num_tlb_entries &
@@ -1597,6 +1602,8 @@ static void kgsl_iommu_lock_rb_in_tlb(struct kgsl_mmu *mmu)
 					TLBLKCR, tlblkcr);
 		}
 		for (j = 0; j < iommu_unit->dev_count; j++) {
+			if (!iommu_unit->dev[j].attached)
+				continue;
 			/* skip locking entries for private bank on 8960 */
 			if (cpu_is_msm8960() &&  KGSL_IOMMU_CONTEXT_PRIV == j)
 				continue;
@@ -1636,6 +1643,8 @@ static void kgsl_iommu_lock_rb_in_tlb(struct kgsl_mmu *mmu)
 			}
 		}
 		for (j = 0; j < iommu_unit->dev_count; j++) {
+			if (!iommu_unit->dev[j].attached)
+				continue;
 			tlblkcr = KGSL_IOMMU_GET_CTX_REG(iommu, iommu_unit,
 						iommu_unit->dev[j].ctx_id,
 						TLBLKCR);
@@ -1700,7 +1709,8 @@ static int kgsl_iommu_start(struct kgsl_mmu *mmu)
 	for (i = 0; i < iommu->unit_count; i++) {
 		struct kgsl_iommu_unit *iommu_unit = &iommu->iommu_units[i];
 		for (j = 0; j < iommu_unit->dev_count; j++) {
-
+			if (!iommu_unit->dev[j].attached)
+				continue;
 			/*
 			 * For IOMMU V1 do not halt IOMMU on pagefault if
 			 * FT pagefault policy is set accordingly
@@ -1719,19 +1729,12 @@ static int kgsl_iommu_start(struct kgsl_mmu *mmu)
 						iommu_unit->dev[j].ctx_id,
 						SCTLR, sctlr_val);
 			}
-			if (sizeof(phys_addr_t) > sizeof(unsigned long)) {
-				iommu_unit->dev[j].default_ttbr0 =
-						KGSL_IOMMU_GET_CTX_REG_LL(iommu,
+
+			iommu_unit->dev[j].default_ttbr0 =
+				KGSL_IOMMU_GET_CTX_REG_LL(iommu,
 						iommu_unit,
 						iommu_unit->dev[j].ctx_id,
 						TTBR0);
-			} else {
-				iommu_unit->dev[j].default_ttbr0 =
-						KGSL_IOMMU_GET_CTX_REG(iommu,
-						iommu_unit,
-						iommu_unit->dev[j].ctx_id,
-						TTBR0);
-			}
 		}
 	}
 	kgsl_iommu_lock_rb_in_tlb(mmu);
@@ -1858,6 +1861,8 @@ void kgsl_iommu_pagefault_resume(struct kgsl_mmu *mmu)
 			struct kgsl_iommu_unit *iommu_unit =
 						&iommu->iommu_units[i];
 			for (j = 0; j < iommu_unit->dev_count; j++) {
+				if (!iommu_unit->dev[j].attached)
+					continue;
 				if (iommu_unit->dev[j].fault) {
 					_iommu_lock(iommu);
 					KGSL_IOMMU_SET_CTX_REG(iommu,
@@ -1877,7 +1882,6 @@ void kgsl_iommu_pagefault_resume(struct kgsl_mmu *mmu)
 		atomic_set(&mmu->fault, 0);
 	}
 }
-
 
 static void kgsl_iommu_stop(struct kgsl_mmu *mmu)
 {
@@ -2003,15 +2007,9 @@ static int kgsl_iommu_default_setstate(struct kgsl_mmu *mmu,
 			pt_base &= KGSL_IOMMU_CTX_TTBR0_ADDR_MASK;
 			pt_val &= ~KGSL_IOMMU_CTX_TTBR0_ADDR_MASK;
 			pt_val |= pt_base;
-			if (sizeof(phys_addr_t) > sizeof(unsigned long)) {
-				KGSL_IOMMU_SET_CTX_REG_LL(iommu,
+			KGSL_IOMMU_SET_CTX_REG_LL(iommu,
 					(&iommu->iommu_units[i]),
 					KGSL_IOMMU_CONTEXT_USER, TTBR0, pt_val);
-			} else {
-				KGSL_IOMMU_SET_CTX_REG(iommu,
-					(&iommu->iommu_units[i]),
-					KGSL_IOMMU_CONTEXT_USER, TTBR0, pt_val);
-			}
 
 			mb();
 			temp = KGSL_IOMMU_GET_CTX_REG_LL(iommu,
@@ -2184,6 +2182,8 @@ static void kgsl_iommu_set_pagefault(struct kgsl_mmu *mmu)
 	/* Loop through all IOMMU devices to check for fault */
 	for (i = 0; i < iommu->unit_count; i++) {
 		for (j = 0; j < iommu->iommu_units[i].dev_count; j++) {
+			if (!iommu->iommu_units[i].dev[j].attached)
+				continue;
 			fsr = KGSL_IOMMU_GET_CTX_REG(iommu,
 				(&(iommu->iommu_units[i])),
 				iommu->iommu_units[i].dev[j].ctx_id, FSR);
