@@ -663,21 +663,25 @@ static ssize_t store_bricked_enabled(struct device *dev,
 static DEVICE_ATTR(startdelay, 644, show_startdelay, store_startdelay);
 static DEVICE_ATTR(delay, 644, show_delay, store_delay);
 static DEVICE_ATTR(idle_freq, 644, show_idle_freq, store_idle_freq);
+static DEVICE_ATTR(min_cpus, 644, show_min_cpus_online, store_min_cpus_online);
+static DEVICE_ATTR(max_cpus, 644, show_max_cpus_online, store_max_cpus_online);
 static DEVICE_ATTR(min_cpus_online, 644, show_min_cpus_online, store_min_cpus_online);
 static DEVICE_ATTR(max_cpus_online, 644, show_max_cpus_online, store_max_cpus_online);
 static DEVICE_ATTR(max_cpus_online_susp, 644, show_max_cpus_online_susp, store_max_cpus_online_susp);
 static DEVICE_ATTR(suspend_defer_time, 644, show_suspend_defer_time, store_suspend_defer_time);
-static DEVICE_ATTR(bricked_enabled, 644, show_bricked_enabled, store_bricked_enabled);
+static DEVICE_ATTR(enabled, 644, show_bricked_enabled, store_bricked_enabled);
 
 static struct attribute *bricked_hotplug_attrs[] = {
 	&dev_attr_startdelay.attr,
 	&dev_attr_delay.attr,
 	&dev_attr_idle_freq.attr,
+	&dev_attr_min_cpus.attr,
+	&dev_attr_max_cpus.attr,
 	&dev_attr_min_cpus_online.attr,
 	&dev_attr_max_cpus_online.attr,
 	&dev_attr_max_cpus_online_susp.attr,
 	&dev_attr_suspend_defer_time.attr,
-	&dev_attr_bricked_enabled.attr,
+	&dev_attr_enabled.attr,
 	&dev_attr_twts_threshold_0.attr,
 	&dev_attr_twts_threshold_1.attr,
 	&dev_attr_twts_threshold_2.attr,
@@ -699,6 +703,7 @@ static struct attribute *bricked_hotplug_attrs[] = {
 
 static struct attribute_group attr_group = {
 	.attrs = bricked_hotplug_attrs,
+	.name = "conf",
 };
 
 /**************************** SYSFS END ****************************/
