@@ -220,6 +220,9 @@
 #define KPDBL_MODULE_DIS		0x00
 #define KPDBL_MODULE_EN_MASK		0x80
 
+static int charging_led = 1;
+module_param_named(charging_led, charging_led, uint, 0664);
+
 /**
  * enum qpnp_leds - QPNP supported led ids
  * @QPNP_ID_WLED - White led backlight
@@ -1234,7 +1237,7 @@ static int rgb_duration_config(struct qpnp_led_data *led)
 
 	if (!on_ms) {
 		return -EINVAL;
-	} else if (!off_ms) {
+	} else if (!off_ms && charging_led) {
 		/* implement always on
 		 * note:
 		 * rgb_on_off_ms_store() bumps on_ms=0 up to RGB_LED_MIN_MS
