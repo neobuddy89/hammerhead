@@ -245,7 +245,7 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89
 HOSTCXXFLAGS = -O2
 
 # Decide whether to build built-in, modular, or both.
@@ -330,7 +330,7 @@ include $(srctree)/scripts/Kbuild.include
 
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
-REAL_CC		= $(CROSS_COMPILE)gcc
+REAL_CC		= ccache $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -351,13 +351,17 @@ CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
-CFLAGS_MODULE   =
-AFLAGS_MODULE   =
+MODFLAGS	= -marm -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 \
+                  -mvectorize-with-neon-quad -fgcse-after-reload -fgcse-sm \
+                  -fgcse-las -ftree-loop-im -ftree-loop-ivcanon -fivopts \
+                  -ftree-vectorize -fmodulo-sched -ffast-math \
+                  -funsafe-math-optimizations -std=gnu89
+CFLAGS_MODULE   = -DMODULE $(MODFLAGS)
+AFLAGS_MODULE   = -DMODULE $(MODFLAGS)
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL	=
+CFLAGS_KERNEL	= $(MODFLAGS)
 AFLAGS_KERNEL	=
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
-
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
@@ -368,11 +372,13 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
+
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -fno-delete-null-pointer-checks
+		   -fno-delete-null-pointer-checks \
+		   $(MODFLAGS)
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
@@ -568,11 +574,18 @@ else
 KBUILD_CFLAGS	+= -O2
 endif
 
+# conserve stack if available
+# do this early so that an architecture can override it.
+KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
+
 include $(srctree)/arch/$(SRCARCH)/Makefile
 
 ifneq ($(CONFIG_FRAME_WARN),0)
 KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
 endif
+
+# Tell gcc to never replace conditional load with a non-conditional one
+KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
 
 # Force gcc to behave correct even for buggy distributions
 ifndef CONFIG_CC_STACKPROTECTOR
@@ -633,8 +646,11 @@ KBUILD_CFLAGS += $(call cc-disable-warning, pointer-sign)
 # disable invalid "can't wrap" optimizations for signed / pointers
 KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
 
-# conserve stack if available
-KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
+# disallow errors like 'EXPORT_GPL(foo);' with missing header
+KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)
+
+# require functions to have arguments in prototypes, not empty 'int foo()'
+KBUILD_CFLAGS   += $(call cc-option,-Werror=strict-prototypes)
 
 # use the deterministic mode of AR if available
 KBUILD_ARFLAGS := $(call ar-option,D)
