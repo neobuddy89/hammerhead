@@ -348,35 +348,31 @@ static int bq24192_set_input_i_limit(struct bq24192_chip *chip, int ma)
 	}
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
-	if (force_fast_charge == 1) {
-		i = 4;
-		custom_ma = FAST_CHARGE_1200;
-	} else if (force_fast_charge == 2) {
-		switch (fast_charge_level) {
-			case FAST_CHARGE_500:
-				i = 2;
-				custom_ma = FAST_CHARGE_500;
-				break;
-			case FAST_CHARGE_900:
-				i = 3;
-				custom_ma = FAST_CHARGE_900;
-				break;
-			case FAST_CHARGE_1200:
-				i = 4;
-				custom_ma = FAST_CHARGE_1200;
-				break;
-			case FAST_CHARGE_1500:
-				i = 5;
-				custom_ma = FAST_CHARGE_1500;
-				break;
-			case FAST_CHARGE_2000:
-				i = 6;
-				custom_ma = FAST_CHARGE_2000;
-				break;
-			default:
-				break;
-		}
-
+	switch (fast_charge_level) {
+		case FAST_CHARGE_0:
+			break;
+		case FAST_CHARGE_500:
+			i = 2;
+			custom_ma = FAST_CHARGE_500;
+			break;
+		case FAST_CHARGE_900:
+			i = 3;
+			custom_ma = FAST_CHARGE_900;
+			break;
+		case FAST_CHARGE_1200:
+			i = 4;
+			custom_ma = FAST_CHARGE_1200;
+			break;
+		case FAST_CHARGE_1500:
+			i = 5;
+			custom_ma = FAST_CHARGE_1500;
+			break;
+		case FAST_CHARGE_2000:
+			i = 6;
+			custom_ma = FAST_CHARGE_2000;
+			break;
+		default:
+			break;
 	}
 #endif
 
