@@ -570,18 +570,17 @@ static int taiko_compare_bit_format(struct snd_soc_codec *codec,
 
 static int taiko_update_uhqa_mode(struct snd_soc_codec *codec, int path)
 {
-	int ret = 0;
 	struct taiko_priv *taiko_p = snd_soc_codec_get_drvdata(codec);
 
-	/* Enable UHQA path for fs >= 96KHz & bit=24 bit */
+	/* Enable UHQA path for fs >= 96KHz or bit=24 bit */
 	if (((taiko_get_sample_rate(codec, path) & 0xE0) >= 0xA0) ||
 		(taiko_compare_bit_format(codec, 24))) {
 		taiko_p->uhqa_mode = 1;
 	} else {
 		taiko_p->uhqa_mode = 0;
 	}
-	dev_info(codec->dev, "%s: uhqa_mode=%d", __func__, taiko_p->uhqa_mode);
-	return ret;
+	dev_dbg(codec->dev, "%s: uhqa_mode=%d", __func__, taiko_p->uhqa_mode);
+	return 0;
 }
 
 static int spkr_drv_wrnd_param_set(const char *val,
@@ -4682,6 +4681,14 @@ static int taiko_volatile(struct snd_soc_codec *ssc, unsigned int reg)
 	if (reg == TAIKO_A_RX_HPH_CNP_EN)
 		return 1;
 
+#ifdef CONFIG_SOUND_CONTROL
+#ifndef CONFIG_MACH_LGE
+	/* HPH gain registers */
+	if (reg == TAIKO_A_RX_HPH_L_GAIN || reg == TAIKO_A_RX_HPH_R_GAIN)
+		return 1;
+#endif
+#endif
+
 	if (reg == TAIKO_A_MBHC_INSERT_DET_STATUS)
 		return 1;
 
@@ -4706,7 +4713,16 @@ static int taiko_volatile(struct snd_soc_codec *ssc, unsigned int reg)
 	return 0;
 }
 
-static int taiko_write(struct snd_soc_codec *codec, unsigned int reg,
+#ifdef CONFIG_SOUND_CONTROL
+extern int snd_hax_reg_access(unsigned int);
+extern unsigned int snd_hax_cache_read(unsigned int);
+extern void snd_hax_cache_write(unsigned int, unsigned int);
+#endif
+
+#ifndef CONFIG_SOUND_CONTROL
+static
+#endif
+int taiko_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
 	int ret;
@@ -4724,9 +4740,24 @@ static int taiko_write(struct snd_soc_codec *codec, unsigned int reg,
 				reg, ret);
 	}
 
+#ifdef CONFIG_SOUND_CONTROL
+	/* In case of no reg access, override with cache value */
+	if (!snd_hax_reg_access(reg) &&
+	    snd_hax_cache_read(reg) != -1)
+		value = snd_hax_cache_read(reg);
+	else
+		snd_hax_cache_write(reg, value);
+#endif
 	return wcd9xxx_reg_write(&wcd9xxx->core_res, reg, value);
 }
-static unsigned int taiko_read(struct snd_soc_codec *codec,
+#ifdef CONFIG_SOUND_CONTROL
+EXPORT_SYMBOL(taiko_write);
+#endif
+
+#ifndef CONFIG_SOUND_CONTROL
+static
+#endif
+unsigned int taiko_read(struct snd_soc_codec *codec,
 				unsigned int reg)
 {
 	unsigned int val;
@@ -4752,6 +4783,9 @@ static unsigned int taiko_read(struct snd_soc_codec *codec,
 	val = wcd9xxx_reg_read(&wcd9xxx->core_res, reg);
 	return val;
 }
+#ifdef CONFIG_SOUND_CONTROL
+EXPORT_SYMBOL(taiko_read);
+#endif
 
 static int taiko_startup(struct snd_pcm_substream *substream,
 		struct snd_soc_dai *dai)
@@ -7473,6 +7507,13 @@ static struct regulator *taiko_codec_find_regulator(struct snd_soc_codec *codec,
 	return NULL;
 }
 
+#ifdef CONFIG_SOUND_CONTROL
+struct snd_soc_codec *fauxsound_codec_ptr;
+EXPORT_SYMBOL(fauxsound_codec_ptr);
+int wcd9xxx_hw_revision;
+EXPORT_SYMBOL(wcd9xxx_hw_revision);
+#endif
+
 static int taiko_codec_probe(struct snd_soc_codec *codec)
 {
 	struct wcd9xxx *control;
@@ -7486,8 +7527,19 @@ static int taiko_codec_probe(struct snd_soc_codec *codec)
 	struct wcd9xxx *core = dev_get_drvdata(codec->dev->parent);
 	struct wcd9xxx_core_resource *core_res;
 
+#ifdef CONFIG_SOUND_CONTROL
+	fauxsound_codec_ptr = codec;
+#endif
+
 	codec->control_data = dev_get_drvdata(codec->dev->parent);
 	control = codec->control_data;
+
+#ifdef CONFIG_SOUND_CONTROL
+	if (TAIKO_IS_1_0(control->version))
+		wcd9xxx_hw_revision = 1;
+	else
+		wcd9xxx_hw_revision = 2;
+#endif
 
 	wcd9xxx_ssr_register(control, taiko_device_down,
 			     taiko_post_reset_cb, (void *)codec);
