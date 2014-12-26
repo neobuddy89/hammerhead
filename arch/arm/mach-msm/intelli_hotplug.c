@@ -43,7 +43,7 @@
 #define DEFAULT_DOWN_LOCK_DUR		2500
 #if defined(CONFIG_LCD_NOTIFY) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
 #define DEFAULT_SUSPEND_DEFER_TIME	10
-#define DEFAULT_MAX_CPUS_ONLINE_SUSP	NR_CPUS / 2
+#define DEFAULT_MAX_CPUS_ONLINE_SUSP	1
 #endif
 
 #define CAPACITY_RESERVE		50
@@ -76,7 +76,6 @@ static struct notifier_block notif;
 #endif
 
 struct ip_cpu_info {
-	unsigned int curr_max;
 	unsigned long cpu_nr_running;
 };
 static DEFINE_PER_CPU(struct ip_cpu_info, ip_info);
@@ -169,9 +168,6 @@ struct down_lock {
 	struct delayed_work lock_rem;
 };
 static DEFINE_PER_CPU(struct down_lock, lock_info);
-
-extern unsigned long avg_nr_running(void);
-extern unsigned long avg_cpu_nr_running(unsigned int cpu);
 
 static void apply_down_lock(unsigned int cpu)
 {
