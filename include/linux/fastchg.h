@@ -20,6 +20,10 @@
 
 extern int fast_charge_level;
 
+#define FAST_CHARGE_DISABLED		0
+#define FAST_CHARGE_FORCE_AC		1
+#define FAST_CHARGE_FORCE_CUSTOM_MA	2
+
 #define FAST_CHARGE_0		0
 #define FAST_CHARGE_500		500
 #define FAST_CHARGE_900		900
