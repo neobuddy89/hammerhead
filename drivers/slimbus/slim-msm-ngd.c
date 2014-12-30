@@ -382,13 +382,6 @@ static int ngd_xfer_msg(struct slim_controller *ctrl, struct slim_msg_txn *txn)
 	}
 	mutex_lock(&dev->tx_lock);
 
-	if (report_sat == false && dev->state != MSM_CTRL_AWAKE) {
-		SLIM_ERR(dev, "controller not ready\n");
-		mutex_unlock(&dev->tx_lock);
-		pm_runtime_set_suspended(dev->dev);
-		msm_slim_put_ctrl(dev);
-		return -EREMOTEIO;
-	}
 	if (txn->mt == SLIM_MSG_MT_CORE &&
 		(txn->mc == SLIM_MSG_MC_CONNECT_SOURCE ||
 		txn->mc == SLIM_MSG_MC_CONNECT_SINK ||
