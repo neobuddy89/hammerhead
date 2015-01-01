@@ -28,6 +28,7 @@
 #define KGSL_TIMEOUT_NONE           0
 #define KGSL_TIMEOUT_DEFAULT        0xFFFFFFFF
 #define KGSL_TIMEOUT_PART           50 /* 50 msec */
+#define KGSL_TIMEOUT_LONG_IB_DETECTION  2000 /* 2 sec*/
 
 #define FIRST_TIMEOUT (HZ / 2)
 
@@ -133,7 +134,6 @@ struct kgsl_functable {
 	int (*setproperty) (struct kgsl_device_private *dev_priv,
 		enum kgsl_property_type type, void *value,
 		unsigned int sizebytes);
-	int (*postmortem_dump) (struct kgsl_device *device, int manual);
 	int (*next_event)(struct kgsl_device *device,
 		struct kgsl_event *event);
 	void (*drawctxt_sched)(struct kgsl_device *device,
@@ -291,17 +291,12 @@ struct kgsl_device {
 	int drv_log;
 	int mem_log;
 	int pwr_log;
-	int pm_dump_enable;
 	struct kgsl_pwrscale pwrscale;
 	struct kobject pwrscale_kobj;
 	struct work_struct ts_expired_ws;
 	struct list_head events;
 	struct list_head events_pending_list;
 	unsigned int events_last_timestamp;
-
-	/* Postmortem Control switches */
-	int pm_regs_enabled;
-	int pm_ib_enabled;
 
 	int reset_counter; /* Track how many GPU core resets have occured */
 	int cff_dump_enable;
@@ -706,27 +701,6 @@ void kgsl_dump_syncpoints(struct kgsl_device *device,
 void kgsl_cmdbatch_destroy(struct kgsl_cmdbatch *cmdbatch);
 
 void kgsl_cmdbatch_destroy_object(struct kref *kref);
-
-/**
-* kgsl_process_private_get() - increment the refcount on a kgsl_process_private
-*   struct
-* @process: Pointer to the KGSL process_private
-*
-* Returns 0 if the structure is invalid and a reference count could not be
-* obtained, nonzero otherwise.
-*/
-static inline int kgsl_process_private_get(struct kgsl_process_private *process)
-{
-	int ret = 0;
-	if (process != NULL)
-		ret = kref_get_unless_zero(&process->refcount);
-	return ret;
-}
-
-void kgsl_process_private_put(struct kgsl_process_private *private);
-
-
-struct kgsl_process_private *kgsl_process_private_find(pid_t pid);
 
 /**
  * kgsl_cmdbatch_put() - Decrement the refcount for a command batch object

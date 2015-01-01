@@ -1,4 +1,4 @@
-/* Copyright (c) 2002,2008-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2002,2008-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -22,79 +22,7 @@
 #define KGSL_LOG_LEVEL_MAX     7
 
 struct dentry *kgsl_debugfs_dir;
-static struct dentry *pm_d_debugfs;
 struct dentry *proc_d_debugfs;
-
-static int pm_dump_set(void *data, u64 val)
-{
-	struct kgsl_device *device = data;
-
-	if (val) {
-		kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
-		kgsl_postmortem_dump(device, 1);
-		kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
-	}
-
-	return 0;
-}
-DEFINE_SIMPLE_ATTRIBUTE(pm_dump_fops,
-			NULL,
-			pm_dump_set, "%llu\n");
-
-static int pm_regs_enabled_set(void *data, u64 val)
-{
-	struct kgsl_device *device = data;
-	device->pm_regs_enabled = val ? 1 : 0;
-	return 0;
-}
-
-static int pm_regs_enabled_get(void *data, u64 *val)
-{
-	struct kgsl_device *device = data;
-	*val = device->pm_regs_enabled;
-	return 0;
-}
-
-static int pm_ib_enabled_set(void *data, u64 val)
-{
-	struct kgsl_device *device = data;
-	device->pm_ib_enabled = val ? 1 : 0;
-	return 0;
-}
-
-static int pm_ib_enabled_get(void *data, u64 *val)
-{
-	struct kgsl_device *device = data;
-	*val = device->pm_ib_enabled;
-	return 0;
-}
-
-static int pm_enabled_set(void *data, u64 val)
-{
-	struct kgsl_device *device = data;
-	device->pm_dump_enable = val;
-	return 0;
-}
-
-static int pm_enabled_get(void *data, u64 *val)
-{
-	struct kgsl_device *device = data;
-	*val = device->pm_dump_enable;
-	return 0;
-}
-
-
-DEFINE_SIMPLE_ATTRIBUTE(pm_regs_enabled_fops,
-			pm_regs_enabled_get,
-			pm_regs_enabled_set, "%llu\n");
-
-DEFINE_SIMPLE_ATTRIBUTE(pm_ib_enabled_fops,
-			pm_ib_enabled_get,
-			pm_ib_enabled_set, "%llu\n");
-
-DEFINE_SIMPLE_ATTRIBUTE(pm_enabled_fops,
-			pm_enabled_get,
-			pm_enabled_set, "%llu\n");
 
 static inline int kgsl_log_set(unsigned int *log_val, void *data, u64 val)
 {
@@ -142,23 +70,6 @@ void kgsl_device_debugfs_init(struct kgsl_device *device)
 				&mem_log_fops);
 	debugfs_create_file("log_level_pwr", 0644, device->d_debugfs, device,
 				&pwr_log_fops);
-
-	/* Create postmortem dump control files */
-
-	pm_d_debugfs = debugfs_create_dir("postmortem", device->d_debugfs);
-
-	if (IS_ERR(pm_d_debugfs))
-		return;
-
-	debugfs_create_file("dump",  0600, pm_d_debugfs, device,
-			    &pm_dump_fops);
-	debugfs_create_file("regs_enabled", 0644, pm_d_debugfs, device,
-			    &pm_regs_enabled_fops);
-	debugfs_create_file("ib_enabled", 0644, pm_d_debugfs, device,
-				    &pm_ib_enabled_fops);
-	debugfs_create_file("enable", 0644, pm_d_debugfs, device,
-				    &pm_enabled_fops);
-
 }
 
 static const char * const memtype_strings[] = {
@@ -213,10 +124,8 @@ static void print_mem_entry(struct seq_file *s, struct kgsl_mem_entry *entry)
 
 	kgsl_get_memory_usage(usage, sizeof(usage), m->flags);
 
-	seq_printf(s, "%pK %pK %8zd %5d %6s %10s %16s %5d\n",
-			(unsigned long *) m->gpuaddr,
-			(unsigned long *) m->useraddr,
-			m->size, entry->id, flags,
+	seq_printf(s, "%08x %08lx %8d %5d %6s %10s %16s %5d\n",
+			m->gpuaddr, m->useraddr, m->size, entry->id, flags,
 			memtype_str(entry->memtype), usage, m->sglen);
 }
 
@@ -256,38 +165,14 @@ static int process_mem_print(struct seq_file *s, void *unused)
 
 static int process_mem_open(struct inode *inode, struct file *file)
 {
-	int ret;
-	pid_t pid = (pid_t) (unsigned long) inode->i_private;
-	struct kgsl_process_private *private = NULL;
-
-	private = kgsl_process_private_find(pid);
-
-	if (!private)
-		return -ENODEV;
-
-	ret = single_open(file, process_mem_print, private);
-	if (ret)
-		kgsl_process_private_put(private);
-
-	return ret;
-}
-
-static int process_mem_release(struct inode *inode, struct file *file)
-{
-	struct kgsl_process_private *private =
-		((struct seq_file *)file->private_data)->private;
-
-	if (private)
-		kgsl_process_private_put(private);
-
-	return single_release(inode, file);
+	return single_open(file, process_mem_print, inode->i_private);
 }
 
 static const struct file_operations process_mem_fops = {
 	.open = process_mem_open,
 	.read = seq_read,
 	.llseek = seq_lseek,
-	.release = process_mem_release,
+	.release = single_release,
 };
 
 
@@ -326,8 +211,8 @@ kgsl_process_init_debugfs(struct kgsl_process_private *private)
 	 * So if debugfs is disabled in kernel, return as
 	 * success.
 	 */
-	dentry = debugfs_create_file("mem", 0444, private->debug_root,
-		(void *) ((unsigned long) private->pid), &process_mem_fops);
+	dentry = debugfs_create_file("mem", 0400, private->debug_root, private,
+			    &process_mem_fops);
 
 	if (IS_ERR(dentry)) {
 		ret = PTR_ERR(dentry);

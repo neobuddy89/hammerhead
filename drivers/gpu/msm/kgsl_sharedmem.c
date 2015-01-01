@@ -482,13 +482,6 @@ static int kgsl_contiguous_vmfault(struct kgsl_memdesc *memdesc,
 	return VM_FAULT_NOPAGE;
 }
 
-static void kgsl_coherent_free(struct kgsl_memdesc *memdesc)
-{
-	kgsl_driver.stats.coherent -= memdesc->size;
-	dma_free_coherent(NULL, memdesc->size,
-			  memdesc->hostptr, memdesc->physaddr);
-}
-
 static void kgsl_cma_coherent_free(struct kgsl_memdesc *memdesc)
 {
 	if (memdesc->hostptr) {
@@ -514,11 +507,8 @@ static struct kgsl_memdesc_ops kgsl_cma_ops = {
 	.vmfault = kgsl_contiguous_vmfault,
 };
 
-static struct kgsl_memdesc_ops kgsl_coherent_ops = {
-	.free = kgsl_coherent_free,
-};
-
-void kgsl_cache_range_op(struct kgsl_memdesc *memdesc, int op)
+int kgsl_cache_range_op(struct kgsl_memdesc *memdesc, size_t offset,
+			size_t size, unsigned int op)
 {
 	/*
 	 * If the buffer is mapped in the kernel operate on that address
@@ -528,7 +518,16 @@ void kgsl_cache_range_op(struct kgsl_memdesc *memdesc, int op)
 	void *addr = (memdesc->hostptr) ?
 		memdesc->hostptr : (void *) memdesc->useraddr;
 
-	int size = memdesc->size;
+	/* Check that offset+length does not exceed memdesc->size */
+	if ((offset + size) > memdesc->size)
+		return -ERANGE;
+
+	addr = addr + offset;
+
+	/*
+	 * The dmac_xxx_range functions handle addresses and sizes that
+	 * are not aligned to the cacheline size correctly.
+	 */
 
 	if (addr !=  NULL) {
 		switch (op) {
@@ -544,6 +543,8 @@ void kgsl_cache_range_op(struct kgsl_memdesc *memdesc, int op)
 		}
 	}
 	outer_cache_range_op_sg(memdesc->sg, memdesc->sglen, op);
+
+	return 0;
 }
 EXPORT_SYMBOL(kgsl_cache_range_op);
 
@@ -733,26 +734,6 @@ done:
 }
 
 int
-kgsl_sharedmem_page_alloc(struct kgsl_memdesc *memdesc,
-		       struct kgsl_pagetable *pagetable, size_t size)
-{
-	int ret = 0;
-	BUG_ON(size == 0);
-
-	size = ALIGN(size, PAGE_SIZE * 2);
-	if (size == 0)
-		return -EINVAL;
-
-	ret =  _kgsl_sharedmem_page_alloc(memdesc, pagetable, size);
-	if (!ret)
-		ret = kgsl_page_alloc_map_kernel(memdesc);
-	if (ret)
-		kgsl_sharedmem_free(memdesc);
-	return ret;
-}
-EXPORT_SYMBOL(kgsl_sharedmem_page_alloc);
-
-int
 kgsl_sharedmem_page_alloc_user(struct kgsl_memdesc *memdesc,
 			    struct kgsl_pagetable *pagetable,
 			    size_t size)
@@ -764,43 +745,6 @@ kgsl_sharedmem_page_alloc_user(struct kgsl_memdesc *memdesc,
 	return _kgsl_sharedmem_page_alloc(memdesc, pagetable, size);
 }
 EXPORT_SYMBOL(kgsl_sharedmem_page_alloc_user);
-
-int
-kgsl_sharedmem_alloc_coherent(struct kgsl_memdesc *memdesc, size_t size)
-{
-	int result = 0;
-
-	size = ALIGN(size, PAGE_SIZE);
-	if (size == 0)
-		return -EINVAL;
-
-	memdesc->size = size;
-	memdesc->ops = &kgsl_coherent_ops;
-
-	memdesc->hostptr = dma_alloc_coherent(NULL, size, &memdesc->physaddr,
-					      GFP_KERNEL);
-	if (memdesc->hostptr == NULL) {
-		KGSL_CORE_ERR("dma_alloc_coherent(%d) failed\n", size);
-		result = -ENOMEM;
-		goto err;
-	}
-
-	result = memdesc_sg_phys(memdesc, memdesc->physaddr, size);
-	if (result)
-		goto err;
-
-	/* Record statistics */
-
-	KGSL_STATS_ADD(size, kgsl_driver.stats.coherent,
-		       kgsl_driver.stats.coherent_max);
-
-err:
-	if (result)
-		kgsl_sharedmem_free(memdesc);
-
-	return result;
-}
-EXPORT_SYMBOL(kgsl_sharedmem_alloc_coherent);
 
 void kgsl_sharedmem_free(struct kgsl_memdesc *memdesc)
 {
