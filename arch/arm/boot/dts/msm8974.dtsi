@@ -1610,7 +1610,6 @@
 		reg = <0 4>;
 		compatible = "devfreq-simple-dev";
 		clock-name = "l2_clk";
-		governor = "cpufreq";
 		freq-tbl-khz =
 			<  300000 >,
 			<  345600 >,
@@ -1636,7 +1635,6 @@
 
 	cpubw: qcom,cpubw {
 		compatible = "qcom,devbw";
-		governor = "cpufreq";
 		qcom,src-dst-ports = <1 512>, <2 512>;
 		qcom,active-only;
 		qcom,bw-tbl =
