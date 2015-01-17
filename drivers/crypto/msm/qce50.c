@@ -4242,7 +4242,7 @@ static int _qce_aead_ccm_req(void *handle, struct qce_req *q_req)
 	qce_dma_map_sg(pce_dev->pdev, areq->src, pce_dev->src_nents,
 			(areq->src == areq->dst) ? DMA_BIDIRECTIONAL :
 							DMA_TO_DEVICE);
-	/* cipher output  for encryption    */
+	/* cipher + mac output  for encryption    */
 	if (areq->src != areq->dst) {
 		if (pce_dev->ce_sps.minor_version == 0)
 			/*
@@ -4521,7 +4521,7 @@ int qce_aead_req(void *handle, struct qce_req *q_req)
 	qce_dma_map_sg(pce_dev->pdev, areq->src, pce_dev->src_nents,
 			(areq->src == areq->dst) ? DMA_BIDIRECTIONAL :
 							DMA_TO_DEVICE);
-	/* cipher + mac output  for encryption    */
+	/* cipher output  for encryption    */
 	if (areq->src != areq->dst) {
 		if (pce_dev->ce_sps.minor_version == 0)
 			/*
