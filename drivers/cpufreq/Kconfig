@@ -131,6 +131,15 @@ config CPU_FREQ_DEFAULT_GOV_SMARTMAX
         help
           Use the CPUFreq governor 'smartmax' as default
 
+config CPU_FREQ_DEFAULT_GOV_YANKACTIVE
+	bool "yankactive"
+	select CPU_FREQ_GOV_YANKACTIVE
+	help
+	  Use the CPUFreq governor 'yankactive' as default. This allows
+	  you to get a full dynamic cpu frequency capable system by simply
+	  loading your cpufreq low-level hardware driver, using the
+	  'yankactive' governor for latency-sensitive workloads.
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -188,6 +197,29 @@ config CPU_FREQ_GOV_ONDEMAND
 
 	  If in doubt, say N.
 
+config CPU_FREQ_GOV_CONSERVATIVE
+	tristate "'conservative' cpufreq governor"
+	depends on CPU_FREQ
+	help
+	  'conservative' - this driver is rather similar to the 'ondemand'
+	  governor both in its source code and its purpose, the difference is
+	  its optimisation for better suitability in a battery powered
+	  environment.  The frequency is gracefully increased and decreased
+	  rather than jumping to 100% when speed is required.
+
+	  If you have a desktop machine then you should really be considering
+	  the 'ondemand' governor instead, however if you are using a laptop,
+	  PDA or even an AMD64 based computer (due to the unacceptable
+	  step-by-step latency issues between the minimum and maximum frequency
+	  transitions in the CPU) you will probably want to use this governor.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called cpufreq_conservative.
+
+	  For details, take a look at linux/Documentation/cpu-freq.
+
+	  If in doubt, say N.
+
 config CPU_FREQ_GOV_INTERACTIVE
 	tristate "'interactive' cpufreq policy governor"
 	help
@@ -230,28 +262,14 @@ config CPU_FREQ_GOV_SMARTMAX
         help
           'smartmax' combined ondemand and smartass2
 
-config CPU_FREQ_GOV_CONSERVATIVE
-	tristate "'conservative' cpufreq governor"
-	depends on CPU_FREQ
+config CPU_FREQ_GOV_YANKACTIVE
+	tristate "'yankactive' cpufreq policy governor"
 	help
-	  'conservative' - this driver is rather similar to the 'ondemand'
-	  governor both in its source code and its purpose, the difference is
-	  its optimisation for better suitability in a battery powered
-	  environment.  The frequency is gracefully increased and decreased
-	  rather than jumping to 100% when speed is required.
-
-	  If you have a desktop machine then you should really be considering
-	  the 'ondemand' governor instead, however if you are using a laptop,
-	  PDA or even an AMD64 based computer (due to the unacceptable
-	  step-by-step latency issues between the minimum and maximum frequency
-	  transitions in the CPU) you will probably want to use this governor.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called cpufreq_conservative.
-
-	  For details, take a look at linux/Documentation/cpu-freq.
-
-	  If in doubt, say N.
+	  'yankactive' - This driver adds a dynamic cpufreq policy governor
+	  designed for latency-sensitive workloads.
+	  The governor is based on interactive with just different default settings
+	  and can be achieved using interactive with a script. This is added for
+	  simplification purposes for myself.
 
 menu "x86 CPU frequency scaling drivers"
 depends on X86
