@@ -670,7 +670,7 @@
 #define MAX_CORES					(4)
 
 // ZZ: enable/disable hotplug support
-#define ENABLE_HOTPLUGGING
+//#define ENABLE_HOTPLUGGING
 
 // ZZ: enable support for native hotplugging on qualcomm platform
 #define QCOM_NATIVE_HOTPLUGGING
@@ -1950,6 +1950,7 @@ static int zz_get_next_freq(unsigned int curfreq, unsigned int updown, unsigned 
 	tmp_limit_table_start = limit_table_start;
 	tmp_max_scaling_freq_soft = max_scaling_freq_soft;
 
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) || defined(CONFIG_BACKLIGHT_EXT_CONTROL)
 	// ff: check to see if we need to override the screen-off limit with the music one
 	if (suspend_flag && dbs_tuners_ins.freq_limit_sleep
 	    && dbs_tuners_ins.freq_limit_sleep < dbs_tuners_ins.music_max_freq
@@ -1957,6 +1958,7 @@ static int zz_get_next_freq(unsigned int curfreq, unsigned int updown, unsigned 
 		tmp_limit_table_start = music_max_freq_step;
 		tmp_max_scaling_freq_soft = music_max_freq_step;
 	}
+#endif
 
 	// ZZ: feq search loop with optimization
 	if (freq_table_desc) {
@@ -6362,8 +6364,10 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		flg_ctr_inputboost_punch = 0;
 		flg_ctr_inputbooster_typingbooster = 0;
 
+#ifdef ENABLE_HOTPLUGGING
 		// ff: check for cores that need to come down
 		queue_work_on(policy->cpu, dbs_wq, &hotplug_offline_work);
+#endif
 	}
 #endif
 #endif
@@ -6729,10 +6733,12 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		if (flg_ctr_inputbooster_typingbooster > 0) {
 			// ff: override normal inputboost_up_threshold
 			scaling_up_threshold = dbs_tuners_ins.inputboost_typingbooster_up_threshold;
+#ifdef ENABLE_HOTPLUGGING
 			if (num_online_cpus < dbs_tuners_ins.inputboost_typingbooster_cores) {
 				// ff: bring core(s) online
 				queue_work_on(policy->cpu, dbs_wq, &hotplug_online_work);
 			}
+#endif
 			flg_ctr_inputbooster_typingbooster--;
 		} else {
 			if (dbs_tuners_ins.inputboost_up_threshold) {
