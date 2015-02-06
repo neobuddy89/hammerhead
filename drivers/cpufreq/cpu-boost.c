@@ -78,7 +78,10 @@ module_param(wakeup_boost, bool, 0644);
 
 static struct delayed_work input_boost_rem;
 static u64 last_input_time;
-#define MIN_INPUT_INTERVAL (150 * USEC_PER_MSEC)
+
+static unsigned int min_input_interval = 150;
+module_param(min_input_interval, uint, 0644);
+
 
 static int set_input_boost_freq(const char *buf, const struct kernel_param *kp)
 {
@@ -385,12 +388,15 @@ static void cpuboost_input_event(struct input_handle *handle,
 		unsigned int type, unsigned int code, int value)
 {
 	u64 now;
+	unsigned int min_interval;
 
 	if (!input_boost_enabled || work_pending(&input_boost_work))
 		return;
 
 	now = ktime_to_us(ktime_get());
-	if (now - last_input_time < MIN_INPUT_INTERVAL)
+	min_interval = max(min_input_interval, input_boost_ms);
+
+	if (now - last_input_time < min_interval * USEC_PER_MSEC)
 		return;
 
 	pr_debug("Input boost for input event.\n");
