@@ -40,8 +40,3 @@ config LCD_NOTIFY
 	depends on FB_MSM_MDSS
 	bool "Enable LCD Notifier Helper"
 	default y
-
-config LCD_KCAL
-	depends on MACH_LGE
-	bool "Enable sysfs for LCD KCAL"
-	default n
