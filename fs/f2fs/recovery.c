@@ -346,10 +346,6 @@ static int do_recover_data(struct f2fs_sb_info *sbi, struct inode *inode,
 	if (IS_INODE(page)) {
 		recover_inline_xattr(inode, page);
 	} else if (f2fs_has_xattr_block(ofs_of_node(page))) {
-		/*
-		 * Deprecated; xattr blocks should be found from cold log.
-		 * But, we should remain this for backward compatibility.
-		 */
 		recover_xattr_data(inode, page, blkaddr);
 		goto out;
 	}
@@ -508,7 +504,7 @@ int recover_fsync_data(struct f2fs_sb_info *sbi)
 	INIT_LIST_HEAD(&inode_list);
 
 	/* step #1: find fsynced inode numbers */
-	set_sbi_flag(sbi, SBI_POR_DOING);
+	sbi->por_doing = true;
 
 	/* prevent checkpoint */
 	mutex_lock(&sbi->cp_mutex);
@@ -541,7 +537,7 @@ out:
 		truncate_inode_pages(META_MAPPING(sbi), 0);
 	}
 
-	clear_sbi_flag(sbi, SBI_POR_DOING);
+	sbi->por_doing = false;
 	if (err) {
 		discard_next_dnode(sbi, blkaddr);
 

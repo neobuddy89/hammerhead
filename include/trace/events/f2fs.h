@@ -72,7 +72,6 @@
 #define show_cpreason(type)						\
 	__print_symbolic(type,						\
 		{ CP_UMOUNT,	"Umount" },				\
-		{ CP_FASTBOOT,	"Fastboot" },				\
 		{ CP_SYNC,	"Sync" },				\
 		{ CP_DISCARD,	"Discard" })
 
@@ -149,14 +148,14 @@ DEFINE_EVENT(f2fs__inode, f2fs_sync_file_enter,
 
 TRACE_EVENT(f2fs_sync_file_exit,
 
-	TP_PROTO(struct inode *inode, int need_cp, int datasync, int ret),
+	TP_PROTO(struct inode *inode, bool need_cp, int datasync, int ret),
 
 	TP_ARGS(inode, need_cp, datasync, ret),
 
 	TP_STRUCT__entry(
 		__field(dev_t,	dev)
 		__field(ino_t,	ino)
-		__field(int,	need_cp)
+		__field(bool,	need_cp)
 		__field(int,	datasync)
 		__field(int,	ret)
 	),
@@ -191,7 +190,7 @@ TRACE_EVENT(f2fs_sync_fs,
 
 	TP_fast_assign(
 		__entry->dev	= sb->s_dev;
-		__entry->dirty	= is_sbi_flag_set(F2FS_SB(sb), SBI_IS_DIRTY);
+		__entry->dirty	= F2FS_SB(sb)->s_dirty;
 		__entry->wait	= wait;
 	),
 
@@ -986,15 +985,14 @@ TRACE_EVENT(f2fs_issue_discard,
 
 TRACE_EVENT(f2fs_issue_flush,
 
-	TP_PROTO(struct super_block *sb, unsigned int nobarrier,
-					unsigned int flush_merge),
+	TP_PROTO(struct super_block *sb, bool nobarrier, bool flush_merge),
 
 	TP_ARGS(sb, nobarrier, flush_merge),
 
 	TP_STRUCT__entry(
 		__field(dev_t,	dev)
-		__field(unsigned int, nobarrier)
-		__field(unsigned int, flush_merge)
+		__field(bool, nobarrier)
+		__field(bool, flush_merge)
 	),
 
 	TP_fast_assign(
