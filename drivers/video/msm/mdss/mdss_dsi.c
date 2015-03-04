@@ -23,6 +23,10 @@
 #include <linux/regulator/consumer.h>
 #include <linux/lcd_notify.h>
 
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
+
 #include "mdss.h"
 #include "mdss_panel.h"
 #include "mdss_dsi.h"
@@ -747,6 +751,9 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		if (ctrl_pdata->on_cmds.link_state == DSI_HS_MODE)
 			rc = mdss_dsi_unblank(pdata);
 		lcd_notifier_call_chain(LCD_EVENT_ON_END, NULL);
+#ifdef CONFIG_STATE_NOTIFIER
+		state_notifier_call_chain(STATE_NOTIFIER_ACTIVE, NULL);
+#endif
 		break;
 	case MDSS_EVENT_BLANK:
 		lcd_notifier_call_chain(LCD_EVENT_OFF_START, NULL);
@@ -759,6 +766,9 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 			rc = mdss_dsi_blank(pdata);
 		rc = mdss_dsi_off(pdata);
 		lcd_notifier_call_chain(LCD_EVENT_OFF_END, NULL);
+#ifdef CONFIG_STATE_NOTIFIER
+		state_notifier_call_chain(STATE_NOTIFIER_SUSPEND, NULL);
+#endif
 		break;
 	case MDSS_EVENT_CONT_SPLASH_FINISH:
 		ctrl_pdata->ctrl_state &= ~CTRL_STATE_MDP_ACTIVE;

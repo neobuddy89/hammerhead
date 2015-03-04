@@ -1059,4 +1059,8 @@ config WAKE_TIMEOUT
 	help
 	 Disable screen wake functions after timeout
 
+config STATE_NOTIFIER
+        bool "State Notifier"
+	default y
+
 endif
