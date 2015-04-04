@@ -1,3 +1,4 @@
+assert(getprop("ro.bootloader") == "HHZ12f" || abort("This package supports bootloader(s): HHZ12f; this device has bootloader " + getprop("ro.bootloader") + "."););
 ui_print("Let the Chaos Begin!");
 
 ui_print("This is a AOSP Kernel. Will not boot on CAF ROMs.");
